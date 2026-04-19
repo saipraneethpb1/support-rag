@@ -1,0 +1,20 @@
+{"query": "How do I cancel my subscription?", "relevant_doc_ids": ["markdown_docs::account/cancel-subscription.md"]}
+{"query": "Will I get a refund if I cancel mid-month?", "relevant_doc_ids": ["markdown_docs::account/cancel-subscription.md", "tickets::T-10021"]}
+{"query": "I'm stuck in an SSO redirect loop with Okta", "relevant_doc_ids": ["markdown_docs::account/sso-setup.md", "tickets::T-10088"]}
+{"query": "How do I set up SAML SSO?", "relevant_doc_ids": ["markdown_docs::account/sso-setup.md"]}
+{"query": "What does the NameID format error mean?", "relevant_doc_ids": ["markdown_docs::account/sso-setup.md", "tickets::T-10088", "changelog::2.14.0"]}
+{"query": "How much does the Team plan cost?", "relevant_doc_ids": ["markdown_docs::getting-started/pricing.md"]}
+{"query": "What is the member limit on the Free plan?", "relevant_doc_ids": ["markdown_docs::getting-started/pricing.md", "markdown_docs::getting-started/quickstart.md"]}
+{"query": "How do I get started with Flowpoint?", "relevant_doc_ids": ["markdown_docs::getting-started/quickstart.md"]}
+{"query": "How to create a custom field in a project?", "relevant_doc_ids": ["markdown_docs::projects/custom-fields.md"]}
+{"query": "What custom field types are available?", "relevant_doc_ids": ["markdown_docs::projects/custom-fields.md"]}
+{"query": "Can I build a formula field on the Team plan?", "relevant_doc_ids": ["markdown_docs::projects/custom-fields.md", "markdown_docs::getting-started/pricing.md", "changelog::2.14.0"]}
+{"query": "How many automation runs do I get per month?", "relevant_doc_ids": ["markdown_docs::projects/automations.md"]}
+{"query": "My automation ran twice on the same task", "relevant_doc_ids": ["tickets::T-10142", "changelog::2.14.0", "markdown_docs::projects/automations.md"]}
+{"query": "How do I debug a failed automation?", "relevant_doc_ids": ["markdown_docs/projects/automations.md", "markdown_docs::projects/automations.md"]}
+{"query": "What is the API rate limit for workspace tokens?", "relevant_doc_ids": ["markdown_docs::api/authentication.md", "changelog::2.13.0"]}
+{"query": "How do I authenticate against the API?", "relevant_doc_ids": ["markdown_docs::api/authentication.md"]}
+{"query": "POST /v1/projects — how do I create a project via API?", "relevant_doc_ids": ["openapi::createProject", "markdown_docs::api/authentication.md"]}
+{"query": "How do I list projects with the API?", "relevant_doc_ids": ["openapi::listProjects"]}
+{"query": "Safari attachment upload fails for large files", "relevant_doc_ids": ["tickets::T-10203", "changelog::2.13.0"]}
+{"query": "What changed in 2.14.0?", "relevant_doc_ids": ["changelog::2.14.0"]}

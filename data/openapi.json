@@ -1,0 +1,122 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Flowpoint API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/v1/projects": {
+      "get": {
+        "operationId": "listProjects",
+        "summary": "List projects",
+        "description": "Returns all projects visible to the authenticated token.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Max results (default 50, cap 200)."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Pagination cursor from previous response."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of projects."
+          },
+          "401": {
+            "description": "Invalid token."
+          }
+        }
+      },
+      "post": {
+        "operationId": "createProject",
+        "summary": "Create a project",
+        "description": "Creates a new project in the workspace. Requires write scope.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "template": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created."
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "403": {
+            "description": "Insufficient scope."
+          }
+        }
+      }
+    },
+    "/v1/tasks/{task_id}": {
+      "get": {
+        "operationId": "getTask",
+        "summary": "Get a task",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "description": "Task ID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The task."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateTask",
+        "summary": "Update a task",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "description": "Task ID."
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated task."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+# Render.com blueprint — free-tier deployment.
+#
+# Usage:
+#   1. Push this repo to GitHub
+#   2. In Render: New > Blueprint > connect the repo
+#   3. Set env vars in Render dashboard (secret keys, not in this file)
+#
+# Notes on free tier:
+#   - The web service sleeps after 15 min idle. First request after sleep
+#     takes ~30s to wake (cold-load the embedding model).
+#   - Qdrant and Redis aren't available on Render free. Options:
+#       a) Use Qdrant Cloud 1GB free tier + Redis Cloud 30MB free tier
+#       b) Fly.io free tier for Qdrant/Redis + Render for the web service
+#       c) Single-dyno deployment where you bundle all three (heavier)
+#   - Build time is long because we prefetch models. Disable with
+#     dockerArgs: [PREFETCH_MODELS=0] if build hits Render time limits.
+
+services:
+  - type: web
+    name: support-rag
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: QDRANT_URL
+        sync: false    # set per-environment in dashboard
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: API_KEY
+        generateValue: true
+      - key: LOG_LEVEL
+        value: INFO
