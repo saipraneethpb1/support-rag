@@ -12,6 +12,7 @@ instead of nightly full reindex.
 """
 from __future__ import annotations
 import hashlib
+import os
 from datetime import datetime, timezone
 from typing import Iterable
 
@@ -50,6 +51,10 @@ class Registry:
         self._sessionmaker = async_sessionmaker(self._engine, expire_on_commit=False)
 
     async def init(self) -> None:
+        db_url = get_settings().registry_db_url
+        if "sqlite" in db_url:
+            path = db_url.split("///")[-1].lstrip("./")
+            os.makedirs(os.path.dirname(path) or "data/registry", exist_ok=True)
         async with self._engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
