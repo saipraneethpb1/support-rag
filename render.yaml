@@ -12,8 +12,8 @@
 #       a) Use Qdrant Cloud 1GB free tier + Redis Cloud 30MB free tier
 #       b) Fly.io free tier for Qdrant/Redis + Render for the web service
 #       c) Single-dyno deployment where you bundle all three (heavier)
-#   - Build time is long because we prefetch models. Disable with
-#     dockerArgs: [PREFETCH_MODELS=0] if build hits Render time limits.
+#   - Build time is fast (~2 min). No model download — embeddings come from
+#     HuggingFace Inference API at query time (EMBEDDING_BACKEND=api).
 
 services:
   - type: web
@@ -27,6 +27,8 @@ services:
         sync: false    # set per-environment in dashboard
       - key: QDRANT_API_KEY
         sync: false
+      - key: QDRANT_COLLECTION
+        value: support_docs
       - key: REDIS_URL
         sync: false
       - key: GROQ_API_KEY
@@ -35,5 +37,13 @@ services:
         sync: false
       - key: API_KEY
         generateValue: true
+      - key: EMBEDDING_BACKEND
+        value: api
+      - key: EMBEDDING_MODEL
+        value: BAAI/bge-small-en-v1.5
+      - key: EMBEDDING_DIM
+        value: "768"
+      - key: RERANKER_ENABLED
+        value: "false"
       - key: LOG_LEVEL
         value: INFO

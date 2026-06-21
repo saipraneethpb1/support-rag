@@ -13,17 +13,9 @@ dependencies = [
     "tenacity>=8.2",
     "httpx>=0.27",
 
-    # Ingestion / parsing
-    "llama-index-core>=0.10",
-    "llama-index-readers-file>=0.1",
+    # Ingestion / parsing (lightweight)
     "beautifulsoup4>=4.12",
     "lxml>=5.1",
-    "markdown-it-py>=3.0",
-    "pypdf>=4.0",
-
-    # Embeddings & rerank (local, free)
-    "sentence-transformers>=2.7",
-    "torch>=2.2",
 
     # Vector + keyword search
     "qdrant-client>=1.9",
@@ -32,6 +24,7 @@ dependencies = [
     # LLM clients (free tiers)
     "groq>=0.5",
     "google-generativeai>=0.5",
+    "google-genai>=1.0",
 
     # API
     "fastapi>=0.110",
@@ -45,19 +38,21 @@ dependencies = [
 
     # Storage
     "sqlalchemy>=2.0",
-    "aiosqlite>=0.20",
-
-    # Eval
-    "ragas>=0.1.7",
-    "datasets>=2.18",
+    "aiosqlite>=0.20"
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
+    "httpx>=0.27",
     "ruff>=0.3",
     "mypy>=1.9",
+]
+# Local full-stack: heavy ML deps for local embedding/reranking (not for Render free tier)
+local = [
+    "sentence-transformers>=2.7",
+    "torch>=2.2",
 ]
 
 [tool.setuptools.packages.find]

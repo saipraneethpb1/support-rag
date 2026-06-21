@@ -26,9 +26,9 @@ class Settings(BaseSettings):
 
     # Models
     embedding_model: str = "BAAI/bge-small-en-v1.5"
-    embedding_backend: str = "sentence-transformers"  # or "fastembed" for low-RAM
+    embedding_backend: str = "api"  # "api" for production; "sentence-transformers"/"fastembed" locally
     reranker_model: str = "BAAI/bge-reranker-base"
-    reranker_enabled: bool = True
+    reranker_enabled: bool = False
     embedding_dim: int = 384
 
     # Chunking

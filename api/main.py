@@ -156,86 +156,347 @@ app.include_router(ingest_router)
 app.include_router(webhooks_router)
 
 
-# ---------- Minimal demo UI ----------
+# ---------- Chat UI ----------
 
 _UI_HTML = """<!doctype html>
-<html lang=en><meta charset=utf-8>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Flowpoint Support</title>
-<style>
-  body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #111; }
-  h1 { font-size: 1.3rem; }
-  #log { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; min-height: 240px; margin-bottom: 1rem; white-space: pre-wrap; }
-  .user { color: #0b5; font-weight: 600; }
-  .bot { color: #14a; }
-  .meta { color: #888; font-size: 0.85em; margin-top: 0.5em; }
-  .cite { display: inline-block; background: #eef; color: #224; padding: 1px 6px; border-radius: 10px; margin: 0 2px; font-size: 0.8em; text-decoration: none; }
-  input[type=text] { width: 100%; padding: 0.6rem; font-size: 1rem; border-radius: 6px; border: 1px solid #bbb; }
-  input[type=password] { padding: 0.4rem; font-size: 0.9rem; border-radius: 6px; border: 1px solid #bbb; width: 220px; }
-  button { padding: 0.6rem 1rem; margin-left: 0.5rem; }
-</style>
-<h1>Flowpoint Support</h1>
-<p><label>API Key: <input id=key type=password value=local-dev-key></label></p>
-<div id=log></div>
-<form id=f>
-  <input id=q type=text placeholder="Ask anything about Flowpoint..." autofocus>
-</form>
+<!-- Apply saved theme before render to avoid flash -->
 <script>
-const log = document.getElementById('log');
-const form = document.getElementById('f');
-const qEl = document.getElementById('q');
-const keyEl = document.getElementById('key');
+  (function(){
+    var t = localStorage.getItem('fp-theme');
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+  })();
+</script>
+<script>window.tailwind={config:{darkMode:'class'}}</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { font-family: 'Inter', system-ui, sans-serif; }
 
-function append(html) { log.innerHTML += html; log.scrollTop = log.scrollHeight; }
+  #log::-webkit-scrollbar { width: 5px; }
+  #log::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  .dark #log::-webkit-scrollbar-thumb { background: #475569; }
 
-form.addEventListener('submit', async (e) => {
+  .dot { width:7px;height:7px;border-radius:50%;display:inline-block;animation:blink 1.2s infinite ease-in-out;background:#94a3b8; }
+  .dark .dot { background: #64748b; }
+  .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,80%,100%{opacity:.2;transform:scale(.75)}40%{opacity:1;transform:scale(1)}}
+
+  .appear{animation:up .2s ease}
+  @keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+  /* Named classes for JS-created elements so dark: variants work without dynamic Tailwind scanning */
+  .bot-bubble {
+    background:#fff; border:1px solid #e2e8f0; color:#334155;
+    border-radius:0 1rem 1rem 1rem; padding:.75rem 1rem;
+    box-shadow:0 1px 3px rgba(0,0,0,.06); font-size:.875rem; max-width:32rem;
+  }
+  .dark .bot-bubble { background:#1e293b; border-color:#334155; color:#cbd5e1; }
+
+  .typing-bubble {
+    background:#fff; border:1px solid #e2e8f0;
+    border-radius:0 1rem 1rem 1rem; padding:.875rem 1rem;
+    box-shadow:0 1px 3px rgba(0,0,0,.06); display:flex; gap:6px; align-items:center;
+  }
+  .dark .typing-bubble { background:#1e293b; border-color:#334155; }
+
+  .cite-bar { display:flex; flex-wrap:wrap; gap:6px; margin-top:.75rem; padding-top:.75rem; border-top:1px solid #e2e8f0; }
+  .dark .cite-bar { border-top-color:#334155; }
+
+  .cite-pill {
+    display:inline-flex; align-items:center; gap:4px; font-size:.75rem;
+    background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe;
+    padding:2px 8px; border-radius:9999px; text-decoration:none; transition:background .15s;
+  }
+  .cite-pill:hover { background:#e0e7ff; }
+  .dark .cite-pill { background:rgba(67,56,202,.18); color:#a5b4fc; border-color:rgba(99,102,241,.3); }
+  .dark .cite-pill:hover { background:rgba(67,56,202,.3); }
+
+  .error-icon {
+    width:2rem; height:2rem; border-radius:9999px; background:#fee2e2; color:#ef4444;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    font-size:.75rem; font-weight:700;
+  }
+  .dark .error-icon { background:rgba(127,29,29,.5); color:#f87171; }
+
+  .error-bubble {
+    background:#fef2f2; border:1px solid #fecaca; color:#b91c1c;
+    border-radius:0 1rem 1rem 1rem; padding:.75rem 1rem;
+    box-shadow:0 1px 3px rgba(0,0,0,.06); font-size:.875rem; max-width:32rem;
+  }
+  .dark .error-bubble { background:rgba(69,10,10,.5); border-color:rgba(127,29,29,.5); color:#fca5a5; }
+
+  /* Markdown prose */
+  .prose p{margin:0 0 .45em}.prose p:last-child{margin:0}
+  .prose ol{padding-left:1.3em;list-style:decimal;margin-bottom:.4em}
+  .prose ul{padding-left:1.3em;list-style:disc;margin-bottom:.4em}
+  .prose li{margin-bottom:.15em}
+  .prose strong{font-weight:600}
+  .prose code{background:#f1f5f9;border-radius:4px;padding:1px 5px;font-size:.82em;font-family:ui-monospace,monospace}
+  .dark .prose { color:#cbd5e1; }
+  .dark .prose strong { color:#e2e8f0; }
+  .dark .prose code { background:#0f172a; color:#a5b4fc; }
+
+  /* Theme toggle icon visibility */
+  .icon-sun  { display:none; }
+  .icon-moon { display:block; }
+  .dark .icon-sun  { display:block; }
+  .dark .icon-moon { display:none; }
+</style>
+</head>
+<body class="h-screen flex flex-col bg-slate-50 dark:bg-gray-950 overflow-hidden transition-colors duration-200">
+
+<!-- Header -->
+<header class="flex-shrink-0 bg-gradient-to-r from-indigo-600 via-blue-600 to-blue-500 shadow-lg">
+  <div class="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+    <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shadow-inner">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-white font-bold text-base leading-tight">Flowpoint Support</h1>
+      <p class="text-blue-200 text-xs">AI assistant &middot; Docs &amp; tickets</p>
+    </div>
+    <div class="ml-auto flex items-center gap-3">
+      <div class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+        <span class="text-blue-100 text-xs font-medium">Online</span>
+      </div>
+      <!-- Dark/Light toggle -->
+      <button id="theme-btn" title="Toggle dark mode"
+        class="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors">
+        <!-- Moon (shown in light mode) -->
+        <svg class="icon-moon w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+        <!-- Sun (shown in dark mode) -->
+        <svg class="icon-sun w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- API key bar -->
+<div class="flex-shrink-0 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-700 transition-colors duration-200">
+  <div class="max-w-2xl mx-auto px-4 py-2 flex items-center gap-2">
+    <svg class="w-3.5 h-3.5 text-slate-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+    </svg>
+    <input id="key" type="password" value="local-dev-key"
+      class="flex-1 text-xs text-slate-500 dark:text-gray-400 bg-transparent outline-none" placeholder="API key">
+  </div>
+</div>
+
+<!-- Messages -->
+<div id="log" class="flex-1 overflow-y-auto px-4 py-5 transition-colors duration-200">
+  <div id="msgs" class="max-w-2xl mx-auto flex flex-col gap-5">
+    <!-- Welcome -->
+    <div class="flex gap-3 appear">
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow text-white text-xs font-bold">F</div>
+      <div class="bot-bubble">
+        Hi! I'm Flowpoint's AI support assistant. Ask me about billing, SSO setup, automations, the API, or anything else in the docs.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Input -->
+<footer class="flex-shrink-0 bg-white dark:bg-gray-900 border-t border-slate-200 dark:border-gray-700 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] px-4 py-3 transition-colors duration-200">
+  <div class="max-w-2xl mx-auto">
+    <form id="f" class="flex items-end gap-2">
+      <div class="flex-1 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-600 rounded-2xl px-4 py-2.5
+        focus-within:border-indigo-400 dark:focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900 transition-all">
+        <textarea id="q" rows="1" autofocus placeholder="Ask anything about Flowpoint…"
+          class="w-full bg-transparent text-sm text-slate-800 dark:text-gray-200 placeholder-slate-400 dark:placeholder-gray-500 outline-none resize-none leading-6"
+          style="max-height:120px;overflow-y:auto"></textarea>
+      </div>
+      <button type="submit"
+        class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600
+          hover:from-indigo-700 hover:to-blue-700 flex items-center justify-center
+          text-white shadow transition-all active:scale-95 hover:shadow-md flex-shrink-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+      </button>
+    </form>
+    <p class="text-center text-xs text-slate-400 dark:text-gray-500 mt-2">Answers cite Flowpoint docs and resolved support tickets</p>
+  </div>
+</footer>
+
+<script>
+const logEl = document.getElementById('log');
+const msgs  = document.getElementById('msgs');
+const form  = document.getElementById('f');
+const qEl   = document.getElementById('q');
+
+// ── Theme toggle ──────────────────────────────────────────────────────────────
+document.getElementById('theme-btn').addEventListener('click', () => {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('fp-theme', isDark ? 'dark' : 'light');
+});
+
+// ── Textarea auto-grow ────────────────────────────────────────────────────────
+qEl.addEventListener('input', () => {
+  qEl.style.height = 'auto';
+  qEl.style.height = Math.min(qEl.scrollHeight, 120) + 'px';
+});
+qEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function scroll() { logEl.scrollTop = logEl.scrollHeight; }
+
+function avatar() {
+  const d = document.createElement('div');
+  d.className = 'w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow text-white text-xs font-bold';
+  d.textContent = 'F';
+  return d;
+}
+
+// ── Message builders ──────────────────────────────────────────────────────────
+function addUser(text) {
+  const row = document.createElement('div');
+  row.className = 'flex justify-end appear';
+  const bubble = document.createElement('div');
+  bubble.className = 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white rounded-2xl rounded-tr-none px-4 py-3 shadow-sm text-sm max-w-sm';
+  bubble.textContent = text;
+  row.appendChild(bubble);
+  msgs.appendChild(row); scroll();
+}
+
+function addTyping() {
+  const row = document.createElement('div');
+  row.id = 'typing'; row.className = 'flex gap-3 appear';
+  const tb = document.createElement('div');
+  tb.className = 'typing-bubble';
+  tb.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  row.appendChild(avatar());
+  row.appendChild(tb);
+  msgs.appendChild(row); scroll();
+}
+
+function removeTyping() { const t = document.getElementById('typing'); if (t) t.remove(); }
+
+function addBot() {
+  const row = document.createElement('div');
+  row.className = 'flex gap-3 appear';
+  const bubble = document.createElement('div');
+  bubble.className = 'bot-bubble';
+  const prose = document.createElement('div');
+  prose.className = 'prose';
+  bubble.appendChild(prose);
+  row.appendChild(avatar());
+  row.appendChild(bubble);
+  msgs.appendChild(row);
+  return { prose, bubble };
+}
+
+function addError(msg) {
+  removeTyping();
+  const row = document.createElement('div');
+  row.className = 'flex gap-3 appear';
+  const icon = document.createElement('div');
+  icon.className = 'error-icon';
+  icon.textContent = '!';
+  const bubble = document.createElement('div');
+  bubble.className = 'error-bubble';
+  bubble.textContent = msg;
+  row.appendChild(icon);
+  row.appendChild(bubble);
+  msgs.appendChild(row); scroll();
+}
+
+function addCitations(citations, bubble) {
+  if (!citations || !citations.length) return;
+  const bar = document.createElement('div');
+  bar.className = 'cite-bar';
+  citations.forEach(c => {
+    const a = document.createElement('a');
+    a.href = c.url || '#'; a.target = '_blank';
+    a.className = 'cite-pill';
+    a.innerHTML = '<span style="font-weight:600">[' + c.marker + ']</span> ' + esc(c.title);
+    bar.appendChild(a);
+  });
+  bubble.appendChild(bar);
+}
+
+// ── Chat submit ───────────────────────────────────────────────────────────────
+form.addEventListener('submit', async e => {
   e.preventDefault();
   const question = qEl.value.trim();
   if (!question) return;
-  qEl.value = '';
-  append(`<div><span class="user">You:</span> ${escape(question)}</div>`);
-  const botId = 'b' + Date.now();
-  append(`<div><span class="bot">Bot:</span> <span id="${botId}"></span></div>`);
-  const botEl = document.getElementById(botId);
+  qEl.value = ''; qEl.style.height = 'auto';
 
-  const resp = await fetch('/chat/stream', {
-    method: 'POST',
-    headers: {'content-type':'application/json', 'x-api-key': keyEl.value},
-    body: JSON.stringify({question, history: []}),
-  });
-  if (!resp.ok) { botEl.textContent = `Error ${resp.status}`; return; }
+  addUser(question);
+  addTyping();
 
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = '';
-  while (true) {
-    const {value, done} = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, {stream:true});
-    const events = buf.split('\\n\\n');
-    buf = events.pop();
-    for (const ev of events) {
-      const dataLine = ev.split('\\n').find(l => l.startsWith('data:'));
-      if (!dataLine) continue;
-      const payload = JSON.parse(dataLine.slice(5).trim());
-      if (payload.type === 'token') { botEl.textContent += payload.text; }
-      else if (payload.type === 'meta') { renderMeta(payload); }
-      else if (payload.type === 'error') { botEl.textContent += ` [error: ${payload.message}]`; }
+  let tokens = [], prose, bubble, botCreated = false;
+
+  try {
+    const resp = await fetch('/chat/stream', {
+      method: 'POST',
+      headers: {'content-type': 'application/json', 'x-api-key': document.getElementById('key').value},
+      body: JSON.stringify({question, history: []}),
+    });
+    if (!resp.ok) {
+      addError(resp.status === 401 ? 'Invalid API key.' : 'Request failed (' + resp.status + '). Try again.');
+      return;
     }
-    log.scrollTop = log.scrollHeight;
+
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream: true});
+      const parts = buf.split('\\n\\n');
+      buf = parts.pop();
+      for (const part of parts) {
+        const line = part.split('\\n').find(l => l.startsWith('data:'));
+        if (!line) continue;
+        let payload;
+        try { payload = JSON.parse(line.slice(5).trim()); } catch { continue; }
+
+        if (payload.type === 'token') {
+          if (!botCreated) { removeTyping(); ({prose, bubble} = addBot()); botCreated = true; }
+          tokens.push(payload.text);
+          prose.innerHTML = marked.parse(tokens.join(''));
+          scroll();
+        } else if (payload.type === 'meta' && bubble) {
+          addCitations(payload.citations, bubble);
+          scroll();
+        } else if (payload.type === 'error') {
+          addError(payload.message || 'Unknown error');
+        }
+      }
+    }
+  } catch (err) {
+    addError('Connection error — is the server running?');
   }
 });
-
-function renderMeta(m) {
-  if (!m.citations || !m.citations.length) return;
-  let html = '<div class="meta">Sources: ';
-  m.citations.forEach(c => {
-    html += `<a class="cite" href="${c.url}" target=_blank title="${escape(c.snippet)}">[${c.marker}] ${escape(c.title)}</a>`;
-  });
-  html += '</div>';
-  append(html);
-}
-function escape(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 </script>
+</body>
 </html>"""
 
 

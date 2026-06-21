@@ -1,6 +1,6 @@
 # Ultra-light build for Render free tier (512MB RAM).
 # No torch, no sentence-transformers, no fastembed.
-# Embeddings come from HuggingFace Inference API (free, no key).
+# Embeddings via Google Gemini API (EMBEDDING_BACKEND=api).
 # Reranker disabled. Total RAM ~100MB.
 
 FROM python:3.11-slim
@@ -17,11 +17,11 @@ ENV PYTHONUNBUFFERED=1 \
 
 RUN pip install --upgrade pip && pip install \
     pydantic pydantic-settings python-dotenv structlog tenacity httpx \
-    beautifulsoup4 lxml markdown-it-py \
+    beautifulsoup4 lxml \
     qdrant-client rank-bm25 \
-    groq google-generativeai \
+    groq google-generativeai google-genai \
     fastapi "uvicorn[standard]" \
-    redis sqlalchemy aiosqlite
+    redis langfuse sqlalchemy aiosqlite
 
 COPY . .
 
