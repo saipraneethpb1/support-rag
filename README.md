@@ -1,5 +1,7 @@
 # Support RAG — Production-grade customer support chatbot
 
+**[Live Demo](https://support-rag-p177.onrender.com)**
+
 A full RAG system for customer support over product docs, help articles,
 resolved tickets, changelog, and API reference. Built step-by-step as a
 portfolio demonstration of production RAG engineering.
