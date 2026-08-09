@@ -16,7 +16,7 @@ render the answer live and only fill in citation pills at the end.
 
 Observability: every call produces a trace record (query, retrieval
 stats, prompt size, latency per stage, LLM provider used, cache hit or
-miss, citation audit). Step 5 wires this into Langfuse.
+miss, citation audit).
 """
 from __future__ import annotations
 import time
@@ -87,10 +87,11 @@ class Generator:
 
         # ---- Semantic cache lookup ----
         cache_hit = False
+        q_vec_for_cache: list[float] | None = None
         if use_cache:
             t0 = time.perf_counter()
-            q_vec = await self.embedder.embed_query(question)
-            cached = await self.cache.lookup(q_vec)
+            q_vec_for_cache = await self.embedder.embed_query(question)
+            cached = await self.cache.lookup(q_vec_for_cache)
             timings["cache_lookup"] = (time.perf_counter() - t0) * 1000
             if cached:
                 log.info(
@@ -99,10 +100,8 @@ class Generator:
                     similarity=round(cached.similarity, 4),
                     original_query=cached.query,
                 )
-                # Reconstruct minimal GeneratedAnswer for cache hits
                 citations = [Citation(**c) for c in cached.citations]
                 audit = audit_citations(cached.answer, citations)
-                # Empty-ish RetrievalResult so downstream code doesn't special-case
                 empty = RetrievalResult(
                     query=question, transformed=None, chunks=[],  # type: ignore[arg-type]
                     timings_ms={}, candidate_count_before_rerank=0,
@@ -139,6 +138,7 @@ class Generator:
             temperature=self.temperature,
         )
         timings["llm"] = (time.perf_counter() - t0) * 1000
+        provider = self.llm.last_provider
 
         # ---- Citation audit ----
         audit = audit_citations(raw_answer, prompt.citations)
@@ -152,7 +152,8 @@ class Generator:
         # ---- Cache write ----
         if use_cache and not cache_hit and retrieval.chunks:
             try:
-                q_vec_for_cache = await self.embedder.embed_query(question)
+                if q_vec_for_cache is None:
+                    q_vec_for_cache = await self.embedder.embed_query(question)
                 await self.cache.store(
                     question,
                     q_vec_for_cache,
@@ -167,6 +168,7 @@ class Generator:
         log.info(
             "generate_complete",
             trace_id=trace_id,
+            provider=provider,
             chunks_retrieved=len(retrieval.chunks),
             chunks_used=prompt.used_chunks,
             invented_citations=len(audit.invented_markers),
@@ -180,7 +182,7 @@ class Generator:
             citations=prompt.citations,
             audit=audit,
             retrieval=retrieval,
-            llm_provider=None,  # filled by router in a future iteration
+            llm_provider=provider,
             cache_hit=False,
             timings_ms=timings,
         )
@@ -191,13 +193,47 @@ class Generator:
         *,
         history: list[tuple[str, str]] | None = None,
         source_types: list[str] | None = None,
+        use_cache: bool = True,
     ) -> AsyncIterator[StreamEvent]:
-        """Stream tokens, then emit a final 'meta' event with citations."""
+        """Stream tokens, then emit a final 'meta' event with citations.
+
+        Semantic cache: on hit we emit the cached answer as tokens (chunked)
+        then meta — same wire format as a live stream.
+        """
         trace_id = uuid.uuid4().hex[:12]
         timings: dict[str, float] = {}
         overall_start = time.perf_counter()
 
-        # Retrieval (always runs — we don't use the semantic cache for streaming)
+        if use_cache:
+            t0 = time.perf_counter()
+            try:
+                q_vec = await self.embedder.embed_query(question)
+                cached = await self.cache.lookup(q_vec)
+            except Exception as e:
+                log.warning("stream_cache_lookup_failed", error=str(e))
+                cached = None
+            timings["cache_lookup"] = (time.perf_counter() - t0) * 1000
+            if cached:
+                # Emit as token chunks so the UI path stays identical
+                chunk_size = 24
+                text = cached.answer
+                for i in range(0, len(text), chunk_size):
+                    yield StreamEvent(type="token", data={"text": text[i : i + chunk_size]})
+                timings["total"] = (time.perf_counter() - overall_start) * 1000
+                yield StreamEvent(
+                    type="meta",
+                    data={
+                        "trace_id": trace_id,
+                        "citations": cached.citations,
+                        "invented_citations": [],
+                        "coverage": 1.0,
+                        "cache_hit": True,
+                        "timings_ms": {k: round(v, 1) for k, v in timings.items()},
+                    },
+                )
+                return
+
+        # Retrieval
         t0 = time.perf_counter()
         retrieval = await self.retriever.retrieve(
             question, top_k=5, candidate_k=20, source_types=source_types
@@ -206,7 +242,6 @@ class Generator:
 
         prompt = self.prompt_builder.build(question, retrieval.chunks, history=history)
 
-        # Accumulate tokens to audit citations at end
         collected: list[str] = []
         t0 = time.perf_counter()
         try:
@@ -219,13 +254,26 @@ class Generator:
                 yield StreamEvent(type="token", data={"text": delta})
         except Exception as e:
             log.exception("stream_failed", trace_id=trace_id, error=str(e))
-            yield StreamEvent(type="error", data={"message": str(e)})
+            yield StreamEvent(type="error", data={"message": "Stream failed. Please try again."})
             return
         timings["llm"] = (time.perf_counter() - t0) * 1000
+        provider = self.llm.last_provider
 
         full_answer = "".join(collected)
         audit = audit_citations(full_answer, prompt.citations)
         timings["total"] = (time.perf_counter() - overall_start) * 1000
+
+        if use_cache and retrieval.chunks:
+            try:
+                q_vec = await self.embedder.embed_query(question)
+                await self.cache.store(
+                    question,
+                    q_vec,
+                    audit.cleaned_answer,
+                    [c.__dict__ for c in audit.used_citations],
+                )
+            except Exception as e:
+                log.warning("stream_cache_store_failed", error=str(e))
 
         yield StreamEvent(
             type="meta",
@@ -243,6 +291,8 @@ class Generator:
                 ],
                 "invented_citations": sorted(audit.invented_markers),
                 "coverage": round(audit.sentence_coverage, 3),
+                "cache_hit": False,
+                "llm_provider": provider,
                 "timings_ms": {k: round(v, 1) for k, v in timings.items()},
             },
         )

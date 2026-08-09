@@ -18,7 +18,7 @@ Fallback: Google Gemini 2.0 Flash — free tier, different infra.
 from __future__ import annotations
 import asyncio
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import AsyncIterator, Protocol
 
 from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential, retry_if_exception_type
@@ -100,7 +100,7 @@ class GroqProvider:
             raise _classify_error(e) from e
 
 
-# ---------- Gemini ----------
+# ---------- Gemini (google-genai SDK) ----------
 
 class GeminiProvider:
     name = "gemini"
@@ -108,25 +108,27 @@ class GeminiProvider:
     def __init__(self, api_key: str, model: str):
         self._api_key = api_key
         self._model_name = model
-        self._model = None
+        self._client = None
 
-    def _get_model(self):
-        if self._model is None:
-            import google.generativeai as genai
-            genai.configure(api_key=self._api_key)
-            self._model = genai.GenerativeModel(self._model_name)
-        return self._model
+    def _get_client(self):
+        if self._client is None:
+            from google import genai
+            self._client = genai.Client(api_key=self._api_key)
+        return self._client
 
     async def complete(self, prompt: str, *, max_tokens: int, temperature: float) -> str:
         try:
-            model = self._get_model()
-            # google-generativeai SDK is sync; offload to thread
+            client = self._get_client()
             resp = await asyncio.to_thread(
-                model.generate_content,
-                prompt,
-                generation_config={"max_output_tokens": max_tokens, "temperature": temperature},
+                client.models.generate_content,
+                model=self._model_name,
+                contents=prompt,
+                config={
+                    "max_output_tokens": max_tokens,
+                    "temperature": temperature,
+                },
             )
-            return resp.text or ""
+            return getattr(resp, "text", None) or ""
         except Exception as e:
             raise _classify_error(e) from e
 
@@ -134,25 +136,25 @@ class GeminiProvider:
         self, prompt: str, *, max_tokens: int, temperature: float
     ) -> AsyncIterator[str]:
         try:
-            model = self._get_model()
-            # Gemini streaming is also sync-iterator; bridge via queue
+            client = self._get_client()
             queue: asyncio.Queue = asyncio.Queue()
             SENTINEL = object()
 
             def _produce():
                 try:
-                    stream = model.generate_content(
-                        prompt,
-                        generation_config={
+                    stream = client.models.generate_content_stream(
+                        model=self._model_name,
+                        contents=prompt,
+                        config={
                             "max_output_tokens": max_tokens,
                             "temperature": temperature,
                         },
-                        stream=True,
                     )
                     for chunk in stream:
-                        if chunk.text:
-                            asyncio.run_coroutine_threadsafe(queue.put(chunk.text), loop)
-                except Exception as exc:  # surface to consumer
+                        text = getattr(chunk, "text", None)
+                        if text:
+                            asyncio.run_coroutine_threadsafe(queue.put(text), loop)
+                except Exception as exc:
                     asyncio.run_coroutine_threadsafe(queue.put(exc), loop)
                 finally:
                     asyncio.run_coroutine_threadsafe(queue.put(SENTINEL), loop)
@@ -172,7 +174,7 @@ class GeminiProvider:
 
 def _classify_error(e: Exception) -> LLMProviderError:
     msg = str(e).lower()
-    if "rate" in msg and "limit" in msg or "429" in msg or "quota" in msg:
+    if ("rate" in msg and "limit" in msg) or "429" in msg or "quota" in msg:
         return RateLimitError(str(e))
     return LLMProviderError(str(e))
 
@@ -216,6 +218,7 @@ class LLMRouter:
         self._breakers: dict[str, _BreakerState] = {
             p.name: _BreakerState() for p in self.providers
         }
+        self.last_provider: str | None = None
 
     async def complete(
         self, prompt: str, *, max_tokens: int = 512, temperature: float = 0.2
@@ -232,6 +235,7 @@ class LLMRouter:
                     provider_name=p.name,
                 )
                 breaker.record_success()
+                self.last_provider = p.name
                 return result
             except Exception as e:
                 breaker.record_failure(self._breaker_threshold, self._breaker_cooldown_s)
@@ -263,6 +267,7 @@ class LLMRouter:
                 if first is None:
                     raise LLMProviderError(f"{p.name} returned empty stream")
                 breaker.record_success()
+                self.last_provider = p.name
                 yield first
                 async for delta in agen:
                     yield delta

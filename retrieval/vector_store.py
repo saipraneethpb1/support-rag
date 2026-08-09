@@ -40,6 +40,17 @@ class VectorStore:
         existing = await self._client.get_collections()
         names = {c.name for c in existing.collections}
         if self._collection in names:
+            info = await self._client.get_collection(self._collection)
+            # qdrant-client shapes vary slightly by version; be defensive
+            vectors = getattr(getattr(info, "config", None), "params", None)
+            vectors = getattr(vectors, "vectors", None)
+            size = getattr(vectors, "size", None)
+            if size is not None and int(size) != int(self._dim):
+                raise RuntimeError(
+                    f"Qdrant collection '{self._collection}' has dim={size}, "
+                    f"but EMBEDDING_DIM={self._dim}. Recreate the collection or "
+                    f"align EMBEDDING_DIM / embedding backend."
+                )
             return
         await self._client.create_collection(
             collection_name=self._collection,

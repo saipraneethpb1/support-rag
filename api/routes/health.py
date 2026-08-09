@@ -22,6 +22,7 @@ async def health(request: Request) -> HealthResponse:
         status = "degraded"
 
     redis_ok = False
+    client = None
     try:
         import redis.asyncio as aioredis
         client = aioredis.from_url(settings.redis_url, decode_responses=True)
@@ -29,6 +30,12 @@ async def health(request: Request) -> HealthResponse:
     except Exception:
         # Not fatal — cache is optional. Don't flip status to degraded on redis alone.
         pass
+    finally:
+        if client is not None:
+            try:
+                await client.aclose()
+            except Exception:
+                pass
 
     providers: list[str] = []
     if settings.groq_api_key:

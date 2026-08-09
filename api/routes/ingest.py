@@ -1,7 +1,7 @@
 """Admin endpoints for ingest control.
 
 Protected by API key. Useful for forcing a re-index from ops tooling
-without restarting the poller.
+without restarting the app (or when the optional poller is disabled).
 """
 from __future__ import annotations
 from fastapi import APIRouter, Depends, Request

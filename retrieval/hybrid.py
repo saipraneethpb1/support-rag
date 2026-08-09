@@ -79,10 +79,12 @@ class HybridSearcher:
             "vec:primary",
             asyncio.create_task(self._vector_search(tq.rewritten, top_k_per_retriever, source_types)),
         ))
-        # BM25 on the rewritten query
+        # BM25 on the rewritten query (same source_types filter as vector)
         tasks.append((
             "bm25:primary",
-            asyncio.create_task(self._bm25_search(tq.rewritten, top_k_per_retriever)),
+            asyncio.create_task(
+                self._bm25_search(tq.rewritten, top_k_per_retriever, source_types)
+            ),
         ))
 
         # Multi-query expansions each go through vector search (not BM25 —
@@ -125,9 +127,13 @@ class HybridSearcher:
         vecs = await self.embedder.embed_documents([doc_text])
         return await self.vector_store.search(vecs[0], top_k=top_k, source_types=source_types)
 
-    async def _bm25_search(self, query_text: str, top_k: int) -> list[dict]:
+    async def _bm25_search(
+        self, query_text: str, top_k: int, source_types: list[str] | None
+    ) -> list[dict]:
         # BM25 is CPU-bound and fast; offload to thread to not block the loop
-        return await asyncio.to_thread(self.bm25_store.search, query_text, top_k)
+        return await asyncio.to_thread(
+            self.bm25_store.search, query_text, top_k, source_types=source_types
+        )
 
     def _rrf_fuse(self, results: dict[str, list[dict]]) -> list[Candidate]:
         merged: dict[str, Candidate] = {}
