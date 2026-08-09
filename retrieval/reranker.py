@@ -13,7 +13,6 @@ but 2GB) or a hosted reranker (Cohere, Voyage).
 """
 from __future__ import annotations
 import asyncio
-from typing import Iterable
 
 from config.settings import get_settings
 from observability.logger import get_logger

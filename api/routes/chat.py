@@ -11,7 +11,7 @@ and citation audit. Scores attached: coverage, invented_citations_count.
 from __future__ import annotations
 import asyncio
 import json
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from api.schemas import ChatRequest, ChatResponse, CitationOut
@@ -23,6 +23,9 @@ from observability.logger import get_logger
 log = get_logger(__name__)
 
 router = APIRouter(tags=["chat"], dependencies=[Depends(require_api_key), Depends(rate_limit)])
+
+_GENERIC_CHAT_ERROR = "Chat failed. Please try again."
+_GENERIC_STREAM_ERROR = "Stream failed. Please try again."
 
 
 def _get_generator(request: Request) -> Generator:
@@ -45,7 +48,7 @@ async def chat(req: ChatRequest, request: Request) -> ChatResponse:
     except Exception as e:
         log.exception("chat_failed", error=str(e))
         trace.update(output={"error": str(e)}, level="ERROR")
-        raise
+        raise HTTPException(status_code=500, detail=_GENERIC_CHAT_ERROR) from e
 
     trace.update(output={"answer": result.answer, "cache_hit": result.cache_hit})
     trace.score(name="coverage", value=result.audit.sentence_coverage)
@@ -95,7 +98,10 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                     trace.score(name="invented_citations", value=float(invented))
         except Exception as e:
             log.exception("stream_failed", error=str(e))
-            yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
+            yield (
+                f"event: error\ndata: "
+                f"{json.dumps({'type': 'error', 'message': _GENERIC_STREAM_ERROR})}\n\n"
+            )
 
     return StreamingResponse(
         event_generator(),

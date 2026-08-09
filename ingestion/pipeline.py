@@ -14,13 +14,14 @@ Runs one full ingest pass across a list of connectors:
 
 This same function is called by:
   - bootstrap_index.py (initial bulk ingest)
-  - workers/poller.py  (every N minutes for real-time freshness)
+  - workers/poller.py  (every N minutes when POLLER_ENABLED=true)
   - webhook_handler    (single-doc ingest on push events)
 """
 from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from ingestion.connectors.base import BaseConnector, SourceRecord
 from ingestion.cleaners import clean
@@ -30,6 +31,9 @@ from ingestion.registry import Registry, hash_content
 from retrieval.vector_store import VectorStore
 from retrieval.bm25_store import BM25Store
 from observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from cache.semantic_cache import SemanticCache
 
 log = get_logger(__name__)
 
@@ -43,6 +47,18 @@ class IngestStats:
     chunks_written: int = 0
     errors: list[str] = field(default_factory=list)
 
+    def merge(self, other: "IngestStats") -> None:
+        self.new += other.new
+        self.updated += other.updated
+        self.unchanged += other.unchanged
+        self.deleted += other.deleted
+        self.chunks_written += other.chunks_written
+        self.errors.extend(other.errors)
+
+    @property
+    def changed(self) -> bool:
+        return (self.new + self.updated + self.deleted) > 0
+
 
 class IngestionPipeline:
     def __init__(
@@ -53,12 +69,14 @@ class IngestionPipeline:
         vector_store: VectorStore | None = None,
         registry: Registry | None = None,
         bm25_store: BM25Store | None = None,
+        semantic_cache: "SemanticCache | None" = None,
     ):
         self.connectors = connectors
         self.embedder = embedder or Embedder()
         self.vector_store = vector_store or VectorStore()
         self.registry = registry or Registry()
         self.bm25_store = bm25_store or BM25Store()
+        self.semantic_cache = semantic_cache
 
     async def run(self, *, rebuild_bm25: bool = True) -> IngestStats:
         await self.registry.init()
@@ -85,42 +103,62 @@ class IngestionPipeline:
         if rebuild_bm25:
             await self._rebuild_bm25()
 
-        log.info("ingest_complete", **stats.__dict__)
+        if stats.changed:
+            await self._invalidate_semantic_cache()
+
+        log.info("ingest_complete", **{k: v for k, v in stats.__dict__.items()})
         return stats
 
     async def ingest_single(self, record: SourceRecord) -> bool:
         """Ingest one record (used by webhook handler). Returns True if changed."""
         await self.registry.init()
         await self.vector_store.ensure_collection()
-        changed = await self._process_record(record, IngestStats())
+        local = IngestStats()
+        changed = await self._process_record(record, local)
         if changed:
             await self._rebuild_bm25()
+            await self._invalidate_semantic_cache()
         return changed
+
+    async def _invalidate_semantic_cache(self) -> None:
+        if self.semantic_cache is None:
+            return
+        try:
+            await self.semantic_cache.bump_corpus_version()
+        except Exception as e:
+            log.warning("semcache_invalidate_failed", error=str(e))
 
     async def _ingest_one_connector(
         self, connector: BaseConnector, run_started_at: datetime, stats: IngestStats
     ) -> None:
         # Bounded concurrency per connector. Keeps memory + CPU in check.
+        # Per-task local stats are merged after gather to avoid races.
         sem = asyncio.Semaphore(8)
         tasks: list[asyncio.Task] = []
 
-        async def _bounded(rec: SourceRecord):
+        async def _bounded(rec: SourceRecord) -> IngestStats:
+            local = IngestStats()
             async with sem:
                 try:
-                    await self._process_record(rec, stats)
+                    await self._process_record(rec, local)
                 except Exception as e:  # never let one bad doc kill the run
                     log.exception("record_failed", doc_id=rec.doc_id, error=str(e))
-                    stats.errors.append(f"{rec.doc_id}: {e}")
+                    local.errors.append(f"{rec.doc_id}: {e}")
+            return local
 
         async for record in connector.list_records():
             tasks.append(asyncio.create_task(_bounded(record)))
             # Drain in batches of 64 to avoid runaway task creation on huge sources
             if len(tasks) >= 64:
-                await asyncio.gather(*tasks)
+                parts = await asyncio.gather(*tasks)
+                for part in parts:
+                    stats.merge(part)
                 tasks.clear()
 
         if tasks:
-            await asyncio.gather(*tasks)
+            parts = await asyncio.gather(*tasks)
+            for part in parts:
+                stats.merge(part)
 
     async def _process_record(self, record: SourceRecord, stats: IngestStats) -> bool:
         cleaned = clean(record)
@@ -162,7 +200,6 @@ class IngestionPipeline:
 
     async def _rebuild_bm25(self) -> None:
         """Pull all payloads from Qdrant and rebuild the BM25 index."""
-        from qdrant_client.http import models as qm
         client = self.vector_store._client  # ok: same package
         collection = self.vector_store._collection
 

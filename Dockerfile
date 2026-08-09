@@ -13,17 +13,26 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     EMBEDDING_BACKEND=api \
-    RERANKER_ENABLED=false
+    EMBEDDING_MODEL=gemini-embedding-001 \
+    EMBEDDING_DIM=768 \
+    RERANKER_ENABLED=false \
+    POLLER_ENABLED=false
 
-RUN pip install --upgrade pip && pip install \
-    pydantic pydantic-settings python-dotenv structlog tenacity httpx \
-    beautifulsoup4 lxml \
-    qdrant-client rank-bm25 \
-    groq google-generativeai google-genai \
-    fastapi "uvicorn[standard]" \
-    redis langfuse sqlalchemy aiosqlite
+COPY pyproject.toml requirements.lock.txt README.md ./
+COPY api ./api
+COPY cache ./cache
+COPY config ./config
+COPY generation ./generation
+COPY ingestion ./ingestion
+COPY observability ./observability
+COPY retrieval ./retrieval
+COPY evaluation ./evaluation
+COPY scripts ./scripts
+COPY data ./data
 
-COPY . .
+RUN pip install --upgrade pip \
+    && pip install -r requirements.lock.txt \
+    && pip install --no-deps .
 
 EXPOSE 8000
 

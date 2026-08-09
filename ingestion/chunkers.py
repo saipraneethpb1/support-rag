@@ -11,9 +11,7 @@ the embedding model has its own tokenizer that handles real truncation.
 """
 from __future__ import annotations
 import re
-import uuid
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from config.settings import get_settings
 from ingestion.connectors.base import SourceRecord

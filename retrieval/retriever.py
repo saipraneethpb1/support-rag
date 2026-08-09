@@ -10,7 +10,6 @@ so we can trace WHY a given chunk was chosen.
 from __future__ import annotations
 import time
 from dataclasses import dataclass, field
-from typing import Any
 
 from retrieval.query_transform import QueryTransformer, LLMAdapter, TransformedQuery
 from retrieval.hybrid import HybridSearcher, Candidate
@@ -51,8 +50,10 @@ class Retriever:
         hybrid: HybridSearcher | None = None,
         reranker: Reranker | None = None,
         llm_for_transforms: LLMAdapter | None = None,
-        enable_rerank: bool = True,
+        enable_rerank: bool | None = None,
     ):
+        from config.settings import get_settings
+
         self.query_transformer = query_transformer or QueryTransformer(
             llm=llm_for_transforms, rewrite=llm_for_transforms is not None,
             expansions=2 if llm_for_transforms else 0,
@@ -60,7 +61,9 @@ class Retriever:
         )
         self.hybrid = hybrid or HybridSearcher()
         self.reranker = reranker or Reranker()
-        self.enable_rerank = enable_rerank
+        self.enable_rerank = (
+            get_settings().reranker_enabled if enable_rerank is None else enable_rerank
+        )
 
     async def retrieve(
         self,

@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 from api.routes.health import router as health_router
 from api.routes.chat import router as chat_router
 from api.routes.ingest import router as ingest_router
+from ingestion.workers.webhook_handler import router as webhooks_router
 from api.schemas import ChatResponse
 from generation.generator import GeneratedAnswer, StreamEvent
 from generation.prompt_builder import Citation
@@ -52,7 +53,7 @@ class _FakeGenerator:
             timings_ms={"total": 10.0},
         )
 
-    async def stream(self, question, *, history=None, source_types=None) -> AsyncIterator[StreamEvent]:
+    async def stream(self, question, *, history=None, source_types=None, use_cache=True) -> AsyncIterator[StreamEvent]:
         for tok in ["Go ", "to ", "Settings", "."]:
             yield StreamEvent(type="token", data={"text": tok})
             await asyncio.sleep(0)
@@ -83,17 +84,24 @@ class _FakePipeline:
     async def run(self):
         @dataclass
         class _S:
-            new: int = 0; updated: int = 0; unchanged: int = 0
-            deleted: int = 0; chunks_written: int = 0
+            new: int = 0
+            updated: int = 0
+            unchanged: int = 0
+            deleted: int = 0
+            chunks_written: int = 0
             errors: list = field(default_factory=list)
         return _S()
+
+    async def ingest_single(self, rec):
+        return True
 
 
 class _FakeVectorStore:
     def __init__(self):
         class _C:
             async def get_collections(self):
-                class R: collections = []
+                class R:
+                    collections = []
                 return R()
         self._client = _C()
 
@@ -108,6 +116,7 @@ def client():
     app.include_router(health_router)
     app.include_router(chat_router)
     app.include_router(ingest_router)
+    app.include_router(webhooks_router)
     return TestClient(app)
 
 
@@ -166,7 +175,7 @@ def test_chat_stream_emits_sse_tokens_then_meta(client):
     frames = [f for f in raw.split("\n\n") if f.strip()]
     events = []
     for f in frames:
-        data_line = next((l for l in f.split("\n") if l.startswith("data:")), None)
+        data_line = next((line for line in f.split("\n") if line.startswith("data:")), None)
         if data_line:
             events.append(json.loads(data_line[5:].strip()))
 
