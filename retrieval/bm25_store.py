@@ -36,6 +36,7 @@ class BM25Store:
     def load(self) -> None:
         if self.path.exists():
             with self.path.open("rb") as f:
+                # Local artifact only — never load untrusted pickles.
                 state = pickle.load(f)
             self._bm25 = state["bm25"]
             self._chunk_ids = state["chunk_ids"]
@@ -59,16 +60,29 @@ class BM25Store:
         self._bm25 = BM25Okapi(tokenized) if tokenized else None
         log.info("bm25_rebuilt", chunks=len(self._chunk_ids))
 
-    def search(self, query: str, top_k: int = 20) -> list[dict]:
+    def search(
+        self,
+        query: str,
+        top_k: int = 20,
+        *,
+        source_types: list[str] | None = None,
+    ) -> list[dict]:
         if not self._bm25:
             return []
         toks = _tokenize(query)
         if not toks:
             return []
         scores = self._bm25.get_scores(toks)
-        ranked = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
-        return [
-            {"score": float(scores[i]), **self._payloads[i]}
-            for i in ranked
-            if scores[i] > 0
-        ]
+        allowed = set(source_types) if source_types else None
+        ranked = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+        out: list[dict] = []
+        for i in ranked:
+            if scores[i] <= 0:
+                break
+            payload = self._payloads[i]
+            if allowed is not None and payload.get("source_type") not in allowed:
+                continue
+            out.append({"score": float(scores[i]), **payload})
+            if len(out) >= top_k:
+                break
+        return out

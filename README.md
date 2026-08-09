@@ -8,21 +8,20 @@ portfolio demonstration of production RAG engineering.
 
 ## What's in the box
 
-- **Hybrid retrieval**: vector (Qdrant, bge-small) + BM25, fused via RRF, reranked by a cross-encoder
-- **Real-time ingestion**: content-hash diffing in a doc registry means only changed docs are re-embedded. Push (webhooks) + pull (poller).
+- **Hybrid retrieval**: vector (Qdrant + Gemini embeddings) + BM25, fused via RRF; optional cross-encoder rerank when `RERANKER_ENABLED=true` and `[local]` extras are installed
+- **Incremental ingestion**: content-hash diffing in a doc registry means only changed docs are re-embedded. Push via webhooks; optional pull poller (`POLLER_ENABLED`); manual `POST /ingest/run`
 - **Multi-source connectors**: markdown docs, help-center HTML, tickets (JSONL), changelog, OpenAPI
 - **Structure-aware chunking**: splits on H1/H2/H3, prepends title + heading path
-- **LLM router**: Groq primary → Gemini fallback, retries, exponential backoff, circuit breaker
+- **LLM router**: Groq primary → Gemini fallback (`google-genai`), retries, exponential backoff, circuit breaker
 - **Citation audit**: flags when the LLM cites markers not present in context — strong hallucination signal, exposed in metrics
-- **Streaming**: `/chat/stream` returns SSE tokens live, then a final meta event with citations
-- **Semantic cache**: near-duplicate queries return cached answers; invalidated on corpus version bump
+- **Streaming**: `/chat/stream` returns SSE tokens live, then a final meta event with citations (uses semantic cache when available)
+- **Semantic cache**: near-duplicate queries return cached answers; corpus version bumps on successful ingest
 - **Observability**: Langfuse tracing (optional), structured logging, per-stage timings
 - **Evaluation**:
   - Retrieval: Hit@K / MRR / nDCG / Recall across 3 retriever configs
   - Answer: faithfulness, relevancy, hallucination rate (LLM-as-judge)
-- **35 unit + integration tests**
 
-Everything runs on free tiers.
+Everything runs on free tiers. Render/Docker keep the reranker and local ML models off to fit 512MB RAM.
 
 ## Local setup
 
@@ -33,10 +32,11 @@ docker compose up -d qdrant redis langfuse
 # 2. Install
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
+# Optional local embeddings/rerank: pip install -e ".[dev,local]"
 
 # 3. Configure
 cp .env.example .env
-# Edit .env: set GROQ_API_KEY (free at console.groq.com)
+# Edit .env: set GROQ_API_KEY and GOOGLE_API_KEY (embeddings + Gemini fallback)
 
 # 4. Seed demo data + bootstrap index
 python -m scripts.seed_demo_data
@@ -44,7 +44,17 @@ python -m scripts.bootstrap_index
 
 # 5. Run API
 uvicorn api.main:app --reload
-# Open http://localhost:8000 for the demo UI
+# Open http://localhost:8000 for the demo UI (paste your API_KEY)
+```
+
+Defaults use Gemini embeddings (`gemini-embedding-001`, dim 768). For local
+sentence-transformers instead:
+
+```bash
+EMBEDDING_BACKEND=sentence-transformers
+EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+EMBEDDING_DIM=384
+RERANKER_ENABLED=true   # requires [local] extras
 ```
 
 ## Endpoints
@@ -60,6 +70,8 @@ uvicorn api.main:app --reload
 | POST   | `/webhooks/docs/updated`     | secret  | Trigger docs re-ingest on CI build  |
 | GET    | `/docs`                      | none    | OpenAPI interactive docs            |
 
+Webhook auth uses `WEBHOOK_SECRET` when set, otherwise `API_KEY`.
+
 ## Folder structure
 
 ```
@@ -73,7 +85,7 @@ support-rag/
 ├── observability/          # Langfuse + structlog
 ├── evaluation/             # Retrieval + answer eval harnesses, golden QA set
 ├── scripts/                # seed + bootstrap
-├── tests/                  # unit (27) + integration (8)
+├── tests/                  # unit + integration
 ├── data/                   # Sample Flowpoint corpus
 ├── Dockerfile
 ├── docker-compose.yml
@@ -83,7 +95,8 @@ support-rag/
 ## Testing
 
 ```bash
-pytest tests/                    # 35 tests
+pytest tests/ -v              # 47 tests
+ruff check .
 ```
 
 ## Evaluation
@@ -97,10 +110,11 @@ python -m evaluation.answer_eval      # needs provider key
 
 1. Push to GitHub
 2. Render → New → Blueprint → connect repo
-3. Set secrets: `GROQ_API_KEY`, `QDRANT_URL` (Qdrant Cloud free), `REDIS_URL` (Redis Cloud free)
-4. First deploy ~10 min (model prefetch), subsequent ~2 min
+3. Set secrets: `GROQ_API_KEY`, `GOOGLE_API_KEY`, `QDRANT_URL` (Qdrant Cloud free), `REDIS_URL` (Redis Cloud free)
+4. Blueprint generates `API_KEY` / `WEBHOOK_SECRET`; embeddings use Gemini API (768-dim)
 
-See `render.yaml` for trade-offs.
+See `render.yaml` for trade-offs. Cold starts no longer attempt to load a local
+cross-encoder — `RERANKER_ENABLED=false` is honored.
 
 ## Scaling path
 

@@ -17,6 +17,10 @@ from observability.logger import get_logger
 
 log = get_logger(__name__)
 
+# Drop buckets idle longer than this to bound memory on rotating keys/IPs.
+_BUCKET_IDLE_TTL_S = 3600.0
+_EVICT_EVERY_N_CHECKS = 64
+
 
 @dataclass
 class _Bucket:
@@ -29,9 +33,22 @@ class RateLimiter:
         self.capacity = capacity
         self.refill_per_second = refill_per_second
         self._buckets: dict[str, _Bucket] = {}
+        self._checks = 0
+
+    def _maybe_evict(self, now: float) -> None:
+        self._checks += 1
+        if self._checks % _EVICT_EVERY_N_CHECKS != 0:
+            return
+        stale = [
+            k for k, b in self._buckets.items()
+            if now - b.last_refill > _BUCKET_IDLE_TTL_S
+        ]
+        for k in stale:
+            del self._buckets[k]
 
     def check(self, key: str) -> None:
         now = time.monotonic()
+        self._maybe_evict(now)
         b = self._buckets.get(key)
         if b is None:
             b = _Bucket(tokens=self.capacity - 1, last_refill=now)

@@ -29,6 +29,8 @@ from observability.logger import get_logger
 
 log = get_logger(__name__)
 
+_CORPUS_VERSION_KEY = "semcache:meta:corpus_version"
+
 
 @dataclass
 class CachedAnswer:
@@ -40,10 +42,10 @@ class CachedAnswer:
 
 
 class SemanticCache:
-    def __init__(self, *, threshold: float = 0.97, corpus_version: str = "v1"):
+    def __init__(self, *, threshold: float = 0.97, corpus_version: str | None = None):
         self._settings = get_settings()
         self._threshold = threshold
-        self._corpus_version = corpus_version
+        self._corpus_version = corpus_version or "v1"
         self._client: aioredis.Redis | None = None
         self._available = True
 
@@ -51,6 +53,10 @@ class SemanticCache:
         # Each entry: (vec: list[float], key: str)
         self._index: list[tuple[list[float], str]] = []
         self._loaded = False
+
+    @property
+    def corpus_version(self) -> str:
+        return self._corpus_version
 
     def _ns(self, suffix: str) -> str:
         return f"semcache:{self._corpus_version}:{suffix}"
@@ -70,24 +76,80 @@ class SemanticCache:
                 return None
         return self._client
 
+    async def sync_corpus_version(self) -> str:
+        """Load corpus version from Redis (shared across processes) if present."""
+        client = await self._get_client()
+        if client is None:
+            return self._corpus_version
+        try:
+            remote = await client.get(_CORPUS_VERSION_KEY)
+            if remote and remote != self._corpus_version:
+                self._corpus_version = remote
+                self._index.clear()
+                self._loaded = False
+                log.info("semcache_corpus_version_synced", version=remote)
+        except Exception as e:
+            log.warning("semcache_version_sync_failed", error=str(e))
+        return self._corpus_version
+
+    async def bump_corpus_version(self) -> str:
+        """Invalidate cache after corpus changes. Bumps version and clears local index."""
+        # Use monotonic counter stored in Redis when available; otherwise local bump.
+        client = await self._get_client()
+        new_version: str
+        if client is not None:
+            try:
+                n = await client.incr("semcache:meta:corpus_counter")
+                new_version = f"v{n}"
+                await client.set(_CORPUS_VERSION_KEY, new_version)
+            except Exception as e:
+                log.warning("semcache_bump_redis_failed", error=str(e))
+                # Fall through to local bump
+                current = self._corpus_version.lstrip("v")
+                try:
+                    new_version = f"v{int(current) + 1}"
+                except ValueError:
+                    new_version = f"v{int(time.time())}"
+        else:
+            current = self._corpus_version.lstrip("v")
+            try:
+                new_version = f"v{int(current) + 1}"
+            except ValueError:
+                new_version = f"v{int(time.time())}"
+
+        self._corpus_version = new_version
+        self._index.clear()
+        self._loaded = False
+        log.info("semcache_corpus_bumped", version=new_version)
+        return new_version
+
     async def _load_index(self) -> None:
         if self._loaded:
             return
+        await self.sync_corpus_version()
         client = await self._get_client()
         if client is None:
             self._loaded = True
             return
-        keys = await client.keys(self._ns("vec:*"))
+
+        pattern = self._ns("vec:*")
+        keys: list[str] = []
+        async for key in client.scan_iter(match=pattern, count=200):
+            keys.append(key)
+
         if keys:
-            raw = await client.mget(keys)
-            for key, v in zip(keys, raw):
-                if v:
-                    try:
-                        self._index.append((json.loads(v), key.replace(":vec:", ":ans:")))
-                    except Exception:
-                        continue
+            # mget in batches to avoid huge payloads
+            for i in range(0, len(keys), 200):
+                batch = keys[i : i + 200]
+                raw = await client.mget(batch)
+                for key, v in zip(batch, raw):
+                    if v:
+                        try:
+                            self._index.append((json.loads(v), key.replace(":vec:", ":ans:")))
+                        except Exception:
+                            continue
         self._loaded = True
-        log.info("semcache_index_loaded", entries=len(self._index))
+        log.info("semcache_index_loaded", entries=len(self._index), version=self._corpus_version)
 
     async def lookup(self, query_vec: list[float]) -> CachedAnswer | None:
         await self._load_index()
@@ -96,6 +158,8 @@ class SemanticCache:
         # Since vectors are L2-normalized, dot product == cosine similarity
         best_key, best_sim = None, -1.0
         for vec, key in self._index:
+            if len(vec) != len(query_vec):
+                continue
             sim = sum(a * b for a, b in zip(vec, query_vec))
             if sim > best_sim:
                 best_sim, best_key = sim, key

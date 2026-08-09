@@ -4,7 +4,7 @@ Focus on pure logic (RRF fusion, metrics) that doesn't need Qdrant/Redis.
 """
 from __future__ import annotations
 
-from retrieval.hybrid import HybridSearcher, RRF_K, Candidate
+from retrieval.hybrid import HybridSearcher, RRF_K
 from evaluation.retrieval_eval import hit_at_k, mrr_at_k, ndcg_at_k, recall_at_k
 
 

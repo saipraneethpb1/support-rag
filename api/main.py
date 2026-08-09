@@ -13,6 +13,7 @@ Routes:
   POST /webhooks/*     - source push handlers (shared-secret)
 """
 from __future__ import annotations
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -24,6 +25,7 @@ from api.routes.health import router as health_router
 from api.routes.chat import router as chat_router
 from api.routes.ingest import router as ingest_router
 from ingestion.workers.webhook_handler import router as webhooks_router
+from ingestion.workers.poller import Poller
 from ingestion.pipeline import IngestionPipeline
 from ingestion.connectors.markdown_docs import MarkdownDocsConnector
 from ingestion.connectors.help_center_html import HelpCenterHTMLConnector
@@ -41,6 +43,7 @@ from generation.generator import Generator
 from generation.llm_router import LLMRouter
 from generation.prompt_builder import PromptBuilder
 from cache.semantic_cache import SemanticCache
+from config.settings import get_settings
 from observability.langfuse_client import get_tracer
 from observability.logger import configure_logging, get_logger
 
@@ -66,7 +69,14 @@ def _build_connectors() -> list:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info("app_starting")
+    settings = get_settings()
+    log.info(
+        "app_starting",
+        embedding_backend=settings.embedding_backend,
+        embedding_dim=settings.embedding_dim,
+        reranker_enabled=settings.reranker_enabled,
+        poller_enabled=settings.poller_enabled,
+    )
 
     # Singletons
     embedder = Embedder()
@@ -74,10 +84,9 @@ async def lifespan(app: FastAPI):
     bm25_store = BM25Store()
     llm_router = LLMRouter()
 
-    # Retrieval stack
+    # Retrieval stack — honor RERANKER_ENABLED (off on free-tier Docker)
     hybrid = HybridSearcher(embedder=embedder, vector_store=vector_store, bm25_store=bm25_store)
     reranker = Reranker()
-    # Use the LLM router itself as the transformer's LLM — it satisfies the LLMAdapter protocol
     query_transformer = QueryTransformer(
         llm=llm_router if llm_router.providers else None,
         rewrite=bool(llm_router.providers),
@@ -87,12 +96,13 @@ async def lifespan(app: FastAPI):
         query_transformer=query_transformer,
         hybrid=hybrid,
         reranker=reranker,
-        enable_rerank=True,
+        enable_rerank=settings.reranker_enabled,
     )
 
     # Generation
     prompt_builder = PromptBuilder()
     semantic_cache = SemanticCache()
+    await semantic_cache.sync_corpus_version()
     generator = Generator(
         retriever=retriever,
         llm_router=llm_router,
@@ -101,12 +111,13 @@ async def lifespan(app: FastAPI):
         embedder=embedder,
     )
 
-    # Ingestion
+    # Ingestion (shares semantic cache so successful ingest bumps corpus version)
     pipeline = IngestionPipeline(
         connectors=_build_connectors(),
         embedder=embedder,
         vector_store=vector_store,
         bm25_store=bm25_store,
+        semantic_cache=semantic_cache,
     )
 
     # Attach to app.state
@@ -116,6 +127,7 @@ async def lifespan(app: FastAPI):
     app.state.retriever = retriever
     app.state.generator = generator
     app.state.ingestion_pipeline = pipeline
+    app.state.semantic_cache = semantic_cache
     app.state.tracer = get_tracer()
 
     # Warm critical paths (collection exists, BM25 loaded)
@@ -125,27 +137,44 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.warning("startup_warmup_failed", error=str(e))
 
+    poller_task: asyncio.Task | None = None
+    if settings.poller_enabled:
+        poller = Poller(pipeline, interval_seconds=settings.poller_interval_seconds)
+        poller_task = asyncio.create_task(poller.run_forever(), name="ingest-poller")
+        app.state.poller = poller
+        log.info("poller_task_started", interval_s=settings.poller_interval_seconds)
+
     log.info("app_ready")
     yield
 
     log.info("app_shutting_down")
+    if poller_task is not None:
+        poller = getattr(app.state, "poller", None)
+        if poller is not None:
+            poller._stop.set()
+        poller_task.cancel()
+        try:
+            await poller_task
+        except asyncio.CancelledError:
+            pass
     try:
         app.state.tracer.flush()
     except Exception:
         pass
 
 
+_settings = get_settings()
+
 app = FastAPI(
     title="Support RAG",
-    version="1.0.0",
+    version="0.1.0",
     description="Production-grade RAG chatbot for customer support over Flowpoint docs + tickets.",
     lifespan=lifespan,
 )
 
-# CORS — tight by default; widen for your deployed frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # change in prod
+    allow_origins=_settings.cors_origin_list(),
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
@@ -176,6 +205,7 @@ _UI_HTML = """<!doctype html>
 <script>window.tailwind={config:{darkMode:'class'}}</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -297,7 +327,7 @@ _UI_HTML = """<!doctype html>
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
     </svg>
-    <input id="key" type="password" value="local-dev-key"
+    <input id="key" type="password" value=""
       class="flex-1 text-xs text-slate-500 dark:text-gray-400 bg-transparent outline-none" placeholder="API key">
   </div>
 </div>
@@ -362,6 +392,17 @@ qEl.addEventListener('keydown', e => {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function safeUrl(u) {
+  try {
+    const url = new URL(String(u || ''), window.location.origin);
+    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
+  } catch (_) {}
+  return '#';
+}
+function renderMarkdown(md) {
+  const raw = marked.parse(String(md || ''), { async: false });
+  return DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
 }
 function scroll() { logEl.scrollTop = logEl.scrollHeight; }
 
@@ -431,9 +472,9 @@ function addCitations(citations, bubble) {
   bar.className = 'cite-bar';
   citations.forEach(c => {
     const a = document.createElement('a');
-    a.href = c.url || '#'; a.target = '_blank';
+    a.href = safeUrl(c.url); a.target = '_blank'; a.rel = 'noopener noreferrer';
     a.className = 'cite-pill';
-    a.innerHTML = '<span style="font-weight:600">[' + c.marker + ']</span> ' + esc(c.title);
+    a.innerHTML = '<span style="font-weight:600">[' + esc(c.marker) + ']</span> ' + esc(c.title);
     bar.appendChild(a);
   });
   bubble.appendChild(bar);
@@ -481,7 +522,7 @@ form.addEventListener('submit', async e => {
         if (payload.type === 'token') {
           if (!botCreated) { removeTyping(); ({prose, bubble} = addBot()); botCreated = true; }
           tokens.push(payload.text);
-          prose.innerHTML = marked.parse(tokens.join(''));
+          prose.innerHTML = renderMarkdown(tokens.join(''));
           scroll();
         } else if (payload.type === 'meta' && bubble) {
           addCitations(payload.citations, bubble);

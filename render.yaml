@@ -7,13 +7,13 @@
 #
 # Notes on free tier:
 #   - The web service sleeps after 15 min idle. First request after sleep
-#     takes ~30s to wake (cold-load the embedding model).
+#     takes ~30s to wake.
 #   - Qdrant and Redis aren't available on Render free. Options:
 #       a) Use Qdrant Cloud 1GB free tier + Redis Cloud 30MB free tier
 #       b) Fly.io free tier for Qdrant/Redis + Render for the web service
 #       c) Single-dyno deployment where you bundle all three (heavier)
-#   - Build time is fast (~2 min). No model download — embeddings come from
-#     HuggingFace Inference API at query time (EMBEDDING_BACKEND=api).
+#   - Build time is fast (~2 min). No local model download — embeddings come from
+#     Google Gemini Embedding API (EMBEDDING_BACKEND=api, dim=768).
 
 services:
   - type: web
@@ -37,13 +37,21 @@ services:
         sync: false
       - key: API_KEY
         generateValue: true
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: ENV
+        value: production
       - key: EMBEDDING_BACKEND
         value: api
       - key: EMBEDDING_MODEL
-        value: BAAI/bge-small-en-v1.5
+        value: gemini-embedding-001
       - key: EMBEDDING_DIM
         value: "768"
       - key: RERANKER_ENABLED
+        value: "false"
+      - key: POLLER_ENABLED
         value: "false"
       - key: LOG_LEVEL
         value: INFO
