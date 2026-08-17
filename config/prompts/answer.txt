@@ -9,7 +9,7 @@ CONVERSATION:
 USER QUESTION: {question}
 
 Instructions:
-1. Use ONLY the CONTEXT above. If the answer isn't there, say "I don't have that information in our docs" and suggest what the user could check.
+1. Use ONLY the CONTEXT above. If the answer isn't there, say "I don't have that in the files you ingested" and suggest which kind of file they could add.
 2. Cite every factual claim with the [N] markers shown in the CONTEXT. Never invent a marker.
 3. Keep the answer short and scannable.
 

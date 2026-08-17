@@ -24,7 +24,7 @@ from ingestion.connectors.base import BaseConnector, SourceRecord
 class TicketsConnector(BaseConnector):
     source_type = "tickets"
 
-    def __init__(self, jsonl_path: str | Path, base_url: str = "https://support.example.com/tickets"):
+    def __init__(self, jsonl_path: str | Path, base_url: str = "https://example.com/tickets"):
         self.path = Path(jsonl_path).resolve()
         self.base_url = base_url.rstrip("/")
 

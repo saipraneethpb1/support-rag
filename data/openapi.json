@@ -1,119 +1,98 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Flowpoint API",
-    "version": "1.0.0"
+    "title": "Ask HTTP API",
+    "version": "0.1.0",
+    "description": "Chat and ingest over files you indexed."
   },
   "paths": {
-    "/v1/projects": {
-      "get": {
-        "operationId": "listProjects",
-        "summary": "List projects",
-        "description": "Returns all projects visible to the authenticated token.",
+    "/chat": {
+      "post": {
+        "operationId": "chat",
+        "summary": "Ask a question (JSON)",
+        "description": "Blocking chat. Requires x-api-key. Optional source_types filter: markdown_docs, help_center, tickets, changelog, openapi.",
         "parameters": [
           {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "description": "Max results (default 50, cap 200)."
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "description": "Pagination cursor from previous response."
+            "name": "x-api-key",
+            "in": "header",
+            "required": true,
+            "description": "Must match API_KEY."
           }
         ],
-        "responses": {
-          "200": {
-            "description": "A paginated list of projects."
-          },
-          "401": {
-            "description": "Invalid token."
-          }
-        }
-      },
-      "post": {
-        "operationId": "createProject",
-        "summary": "Create a project",
-        "description": "Creates a new project in the workspace. Requires write scope.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": {
+                  "question": {
                     "type": "string"
                   },
-                  "template": {
-                    "type": "string"
+                  "source_types": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "use_cache": {
+                    "type": "boolean"
                   }
-                }
+                },
+                "required": [
+                  "question"
+                ]
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Project created."
+          "200": {
+            "description": "Answer, citations, and timings."
           },
-          "400": {
-            "description": "Invalid request."
-          },
-          "403": {
-            "description": "Insufficient scope."
+          "401": {
+            "description": "Invalid API key."
           }
         }
       }
     },
-    "/v1/tasks/{task_id}": {
-      "get": {
-        "operationId": "getTask",
-        "summary": "Get a task",
-        "parameters": [
-          {
-            "name": "task_id",
-            "in": "path",
-            "required": true,
-            "description": "Task ID."
-          }
-        ],
+    "/chat/stream": {
+      "post": {
+        "operationId": "chatStream",
+        "summary": "Ask a question (SSE)",
+        "description": "Same body as POST /chat. Streams event: token then a final event: meta with citations.",
         "responses": {
           "200": {
-            "description": "The task."
+            "description": "text/event-stream"
           },
-          "404": {
-            "description": "Not found."
+          "401": {
+            "description": "Invalid API key."
           }
         }
-      },
-      "patch": {
-        "operationId": "updateTask",
-        "summary": "Update a task",
-        "parameters": [
-          {
-            "name": "task_id",
-            "in": "path",
-            "required": true,
-            "description": "Task ID."
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          }
-        },
+      }
+    },
+    "/ingest/run": {
+      "post": {
+        "operationId": "ingestRun",
+        "summary": "Re-index files on disk",
+        "description": "Full ingest pass. Unchanged files are skipped. Requires x-api-key.",
         "responses": {
           "200": {
-            "description": "Updated task."
+            "description": "Counts of new, updated, unchanged, deleted."
           },
-          "404": {
-            "description": "Not found."
+          "401": {
+            "description": "Invalid API key."
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Dependency health",
+        "description": "Reports Qdrant, Redis, and configured LLM providers. No auth.",
+        "responses": {
+          "200": {
+            "description": "Health payload."
           }
         }
       }

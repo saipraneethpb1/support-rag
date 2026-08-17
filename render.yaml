@@ -28,7 +28,7 @@ services:
       - key: QDRANT_API_KEY
         sync: false
       - key: QDRANT_COLLECTION
-        value: support_docs
+        value: ask_docs
       - key: REDIS_URL
         sync: false
       - key: GROQ_API_KEY
