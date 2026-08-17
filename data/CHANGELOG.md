@@ -1,32 +1,19 @@
 # Changelog
 
-All notable changes to Flowpoint will be documented here.
+All notable changes to this app are listed here.
 
-## [2.14.0] - 2026-03-12
-
-### Added
-- Formula custom fields on Business plan
-- Bulk task import from CSV (up to 10,000 rows)
-- SCIM 2.0 provisioning for Okta and OneLogin
-
-### Fixed
-- SSO redirect loop when NameID format was unset
-- Automations occasionally firing twice on rapid status updates
-
-## [2.13.0] - 2026-02-04
+## [0.2.0] - 2026-08-17
 
 ### Added
-- Slack unfurl for Flowpoint task links
-- Keyboard shortcut `G D` to jump to dashboard
+- Generic document Q&A (not tied to a company support desk)
+- Example corpus that explains how to add your own files
 
 ### Changed
-- API rate limit for workspace tokens raised from 300 to 600 req/min
+- Semantic cache invalidates when ingest actually changes the corpus
 
-### Fixed
-- Attachments over 50 MB failing silently in Safari
+## [0.1.0] - 2026-08-09
 
-## [2.12.1] - 2026-01-15
-
-### Fixed
-- Workspace owner transfer failing when target had a pending invite
-- Timezone off-by-one on due date reminders for users in UTC-negative zones
+### Added
+- Hybrid retrieval (vector + BM25 + RRF)
+- Streaming chat and citation audit
+- Markdown, HTML, tickets, changelog, and OpenAPI connectors

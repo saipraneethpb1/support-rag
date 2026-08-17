@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # Vector store
     qdrant_url: str = "http://localhost:6333"
-    qdrant_collection: str = "support_docs"
+    qdrant_collection: str = "ask_docs"
     qdrant_api_key: str = ""
 
     # Cache & registry

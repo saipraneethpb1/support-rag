@@ -1,8 +1,7 @@
-"""Seed realistic demo data.
+"""Write the bundled example corpus.
 
-Creates a plausible corpus for a fictional project-management SaaS
-called "Flowpoint". Not Lorem Ipsum — the content reads like real docs
-so retrieval evaluation is meaningful.
+The sample files document THIS app so anyone can open the UI and
+understand what to do: add files, ingest, ask questions.
 
 Usage:
     python -m scripts.seed_demo_data
@@ -15,347 +14,356 @@ ROOT = Path("data")
 
 
 DOCS = {
-    "getting-started/quickstart.md": """# Quickstart
+    "what-this-is.md": """# What this is
 
-Get your first Flowpoint project running in under five minutes.
+This app answers questions using **only files you give it**. It is not
+tied to a company, product, or support desk. Put your notes, docs, or
+exports in the `data/` folder, ingest them, then ask.
 
-## 1. Create your workspace
+## What happens when you ask
 
-Sign in at https://app.flowpoint.io and click **Create workspace**. Pick a
-name that reflects your team (you can rename later). Each workspace has
-its own billing, members, and projects.
+1. Your question is searched against the ingested files (keyword +
+   meaning).
+2. The best matching passages are sent to a language model.
+3. The reply cites those passages. If nothing relevant was ingested,
+   it should say so instead of guessing.
 
-## 2. Invite your team
+## What it is not
 
-From the workspace sidebar, open **People > Invite members**. Paste a list
-of email addresses (up to 50 at once). Invitees get an email with a
-magic-link signup — no password required. Free plans are capped at 10
-members per workspace.
-
-## 3. Create a project
-
-Click **New project**. Choose a template (Kanban, Sprint, Roadmap) or
-start blank. Projects are where tasks, documents, and discussions live.
-
-## 4. Add your first task
-
-Inside a project, press `C` to create a task. Give it a title, assignee,
-and due date. That's it — you're live.
+It does not browse the web. It does not know your files until you
+ingest them. Changing a file on disk does nothing until you run ingest
+again (`POST /ingest/run` or `python -m scripts.bootstrap_index`).
 """,
-    "getting-started/pricing.md": """# Pricing and plans
+    "add-your-files.md": """# Add your own files
 
-Flowpoint has three plans: Free, Team, and Business.
+Replace the example files under `data/` with yours, then ingest.
 
-## Free
+## Folders the app already watches
 
-- Up to 10 members
-- Unlimited projects
-- 2 GB file storage per workspace
-- 30-day activity history
-- Community support
+| Path | What to put there |
+|------|-------------------|
+| `data/sample_docs/` | Markdown (`.md`). Nested folders are fine. |
+| `data/sample_help_center/` | HTML articles (`.html`). |
+| `data/sample_tickets/tickets.jsonl` | One JSON object per line (id, subject, status, messages). |
+| `data/CHANGELOG.md` | A Keep-a-Changelog file; each version becomes its own document. |
+| `data/openapi.json` | OpenAPI 3 JSON; each endpoint becomes its own document. |
 
-## Team — $8 per member per month
+You can keep some of these empty. Connectors skip missing folders.
 
-- Unlimited members
-- 100 GB file storage
-- Unlimited activity history
-- Custom fields and views
-- Email support (24h response)
-- SSO via Google and Microsoft
-
-## Business — $16 per member per month
-
-- Everything in Team
-- 1 TB file storage
-- SAML SSO and SCIM provisioning
-- Audit log and data residency controls
-- Priority support (4h response)
-- 99.9% uptime SLA
-
-Billing is monthly or annual (annual saves 20%). You can switch plans
-anytime; downgrades apply at the end of the current billing period.
-""",
-    "account/cancel-subscription.md": """# Cancel your subscription
-
-You can cancel your paid subscription at any time. Your workspace stays
-active until the end of the current billing period, then automatically
-moves to the Free plan.
-
-## How to cancel
-
-1. Open **Settings > Billing** (workspace owner only).
-2. Click **Cancel subscription**.
-3. Confirm by typing your workspace name.
-
-## What happens to your data
-
-Nothing is deleted. If your workspace exceeds Free-plan limits (for
-example, more than 10 members or 2 GB storage), those features become
-read-only until you're back within limits or upgrade again.
-
-## Refunds
-
-Annual plans are prorated on request within 30 days of renewal. Monthly
-plans are not refunded, but you keep access until the period ends.
-
-## Trouble canceling
-
-If the Cancel button is grayed out, you're probably not the workspace
-owner. Ask the owner to cancel, or transfer ownership first via
-**Settings > People > Transfer ownership**.
-""",
-    "account/sso-setup.md": """# Set up SSO
-
-Single sign-on is available on Team (Google, Microsoft) and Business
-(SAML, Okta, OneLogin) plans.
-
-## SAML SSO (Business plan)
-
-1. In Flowpoint, open **Settings > Security > SSO** and copy the ACS URL
-   and Entity ID.
-2. In your identity provider, create a new SAML app with those values.
-3. Paste the IdP metadata URL back into Flowpoint.
-4. Click **Test connection**. A successful test shows your email from
-   the IdP.
-5. Enable **Require SSO** to force all members to sign in via SSO.
-
-## Common errors
-
-- **"Invalid audience"** — The Entity ID in your IdP doesn't match
-  Flowpoint's. Copy it again from the SSO settings page.
-- **"User not provisioned"** — SCIM isn't enabled or the user doesn't
-  exist in Flowpoint yet. Either enable SCIM auto-provisioning or
-  invite the user manually first.
-- **Redirect loop after sign-in** — Your IdP is returning a NameID
-  format Flowpoint doesn't recognize. Set NameID format to
-  `emailAddress`.
-""",
-    "projects/custom-fields.md": """# Custom fields
-
-Custom fields let you add structured data to tasks beyond the built-in
-fields. Available on Team and Business plans.
-
-## Field types
-
-- **Text** — short single-line strings
-- **Number** — integers or decimals, with optional unit label
-- **Select** — single choice from a fixed list of options
-- **Multi-select** — multiple choices
-- **Date** — calendar date, optional time
-- **Person** — workspace member
-- **URL** — validated link
-- **Formula** — computed from other fields (Business plan only)
-
-## Create a custom field
-
-Open a project, click the **+** at the end of the column headers, choose
-**Custom field**, pick a type, and name it. Fields can be project-scoped
-(visible only in this project) or workspace-scoped (reusable).
-
-## Limits
-
-- 50 fields per project
-- 200 workspace-scoped fields total
-- Formula depth capped at 5 levels to prevent runaway computation
-""",
-    "projects/automations.md": """# Automations
-
-Automations run when a trigger fires and execute one or more actions.
-Think "when a task moves to Done, notify the reporter on Slack".
-
-## Triggers
-
-- Task created, updated, moved, completed, or deleted
-- Due date approaching (1 day, 1 hour)
-- Custom field changed
-- Comment added
-- Schedule (hourly, daily, weekly, cron)
-
-## Actions
-
-- Update a task field
-- Create a task
-- Post to Slack or Microsoft Teams
-- Send an email
-- Call a webhook
-
-## Limits and quotas
-
-Free plan: no automations. Team: 100 runs per member per month.
-Business: 1,000 runs per member per month. Overages are throttled, not
-billed — queued runs execute when quota resets.
-
-## Debugging
-
-Every automation run appears in **Automations > Run history** with input,
-output, and status. Failed runs can be retried manually. If a webhook
-destination returns 5xx, Flowpoint retries up to 3 times with
-exponential backoff.
-""",
-    "api/authentication.md": """# API authentication
-
-The Flowpoint API uses bearer tokens. Generate a token at
-**Settings > API > Personal tokens** or create a workspace-scoped token
-at **Settings > API > Workspace tokens** (Business plan).
-
-## Making a request
+## After you add or edit files
 
 ```
-curl https://api.flowpoint.io/v1/projects \\
-  -H "Authorization: Bearer fpk_live_abc123"
+python -m scripts.bootstrap_index
 ```
 
-## Token scopes
+Or, with the API running and your API key:
 
-- `read` — read-only access to projects, tasks, comments
-- `write` — create and update tasks and comments
-- `admin` — manage members, fields, automations (workspace tokens only)
+```
+curl -X POST http://localhost:8000/ingest/run -H "x-api-key: YOUR_KEY"
+```
 
-## Rate limits
+Unchanged files are skipped (content hash). Deleted files are removed
+from the index on a full ingest pass.
+""",
+    "ask-questions.md": """# Ask questions
 
-- Personal tokens: 60 requests per minute
-- Workspace tokens: 600 requests per minute
+Open http://localhost:8000. Paste the same `API_KEY` you set in `.env`
+into the key field (it is empty on purpose). Type a question.
 
-Rate-limited responses return `429 Too Many Requests` with a
-`Retry-After` header in seconds.
+## Chat API
+
+Blocking JSON:
+
+```
+curl -X POST http://localhost:8000/chat \\
+  -H "content-type: application/json" \\
+  -H "x-api-key: YOUR_KEY" \\
+  -d '{"question": "How do I add my own files?"}'
+```
+
+Streaming (server-sent events): `POST /chat/stream` with the same body.
+Tokens arrive as `event: token`; citations arrive as a final `event: meta`.
+
+## If you get 401
+
+The `x-api-key` header (or the UI field) must match `API_KEY` in `.env`.
+The demo UI does not pre-fill the key.
+
+## Optional filters
+
+You can limit retrieval to source types: `markdown_docs`, `help_center`,
+`tickets`, `changelog`, `openapi` via the `source_types` field on the
+chat request.
+""",
+    "how-answers-work.md": """# How answers work
+
+Retrieval is **hybrid**: vector search (meaning) plus BM25 (exact words
+like error codes and filenames), fused with Reciprocal Rank Fusion.
+
+## Citations
+
+Every factual sentence should include markers like [1] that map to
+ingested files. The UI shows those as links under the answer. Invented
+markers (numbers that were not in the retrieved context) are stripped
+and counted as a hallucination signal.
+
+## Cache
+
+Near-duplicate questions can return a cached answer. After a successful
+ingest that changed the corpus, that cache is invalidated.
+
+## Honesty
+
+The model is instructed to refuse when the ingested files do not
+contain the answer. If it still guesses, treat citations as the
+source of truth and re-ingest better docs.
+""",
+    "sources.md": """# Source types
+
+The pipeline is the same for every source: clean → chunk → embed →
+store. Only the connector differs.
+
+## Markdown
+
+Best for hand-written docs. Headings become chunk boundaries. The
+first `#` heading is the title.
+
+## HTML
+
+For exported help-center pages. Nav, footer, and scripts are stripped
+so the model sees the article body.
+
+## Tickets
+
+JSONL of resolved conversations. Useful for "we already answered this"
+style questions. Unresolved tickets in a webhook payload are ignored.
+
+## Changelog
+
+One document per `##` version heading. Ask "what changed in 0.2.0?"
+and you should retrieve that section, not the whole file.
+
+## OpenAPI
+
+One document per HTTP method + path. Ask "how do I call POST /chat?"
+and you should retrieve that operation.
+""",
+    "run-locally.md": """# Run it locally
+
+You need Python 3.11+, Docker (for Qdrant and Redis), and at least one
+LLM key (Groq recommended). Embeddings default to Google Gemini.
+
+## Steps
+
+1. `docker compose up -d qdrant redis`
+2. `python -m venv .venv && source .venv/bin/activate`
+3. `pip install -e ".[dev]"`
+4. `cp .env.example .env` and set `GROQ_API_KEY` and `GOOGLE_API_KEY`
+5. `python -m scripts.seed_demo_data` (optional; refreshes example files)
+6. `python -m scripts.bootstrap_index`
+7. `uvicorn api.main:app --reload`
+
+Health check: `GET /health`. Chat UI: `GET /`.
+
+## Free-tier deploy
+
+The Docker image keeps the reranker off (`RERANKER_ENABLED=false`) so
+it fits small hosts. Point `QDRANT_URL` and `REDIS_URL` at hosted
+services if you deploy the web process alone.
+""",
+}
+
+HELP_HTML = {
+    "add-your-files.html": """<!DOCTYPE html>
+<html>
+<head><title>Add your own files</title></head>
+<body>
+  <nav>Help</nav>
+  <article>
+    <h1>Add your own files</h1>
+    <p>Drop markdown into <code>data/sample_docs</code>, HTML into
+    <code>data/sample_help_center</code>, then run ingest. The app does
+    not read files until ingest runs.</p>
+    <h2>Ingest</h2>
+    <p>Use <code>python -m scripts.bootstrap_index</code> or
+    <code>POST /ingest/run</code> with your API key.</p>
+    <p>Unchanged files are skipped. Deleted files drop out of the index
+    on a full ingest pass.</p>
+  </article>
+  <footer>Ask</footer>
+</body>
+</html>
+""",
+    "api-key.html": """<!DOCTYPE html>
+<html>
+<head><title>API key</title></head>
+<body>
+  <nav>Help</nav>
+  <main class="article">
+    <h1>API key</h1>
+    <p>Chat and ingest require the <code>x-api-key</code> header. Set
+    <code>API_KEY</code> in <code>.env</code>. The chat page has a key
+    field at the top; it starts empty.</p>
+    <p>A 401 means the key does not match. Webhooks use
+    <code>WEBHOOK_SECRET</code> if set, otherwise the same API key.</p>
+  </main>
+</body>
+</html>
 """,
 }
 
 CHANGELOG = """# Changelog
 
-All notable changes to Flowpoint will be documented here.
+All notable changes to this app are listed here.
 
-## [2.14.0] - 2026-03-12
-
-### Added
-- Formula custom fields on Business plan
-- Bulk task import from CSV (up to 10,000 rows)
-- SCIM 2.0 provisioning for Okta and OneLogin
-
-### Fixed
-- SSO redirect loop when NameID format was unset
-- Automations occasionally firing twice on rapid status updates
-
-## [2.13.0] - 2026-02-04
+## [0.2.0] - 2026-08-17
 
 ### Added
-- Slack unfurl for Flowpoint task links
-- Keyboard shortcut `G D` to jump to dashboard
+- Generic document Q&A (not tied to a company support desk)
+- Example corpus that explains how to add your own files
 
 ### Changed
-- API rate limit for workspace tokens raised from 300 to 600 req/min
+- Semantic cache invalidates when ingest actually changes the corpus
 
-### Fixed
-- Attachments over 50 MB failing silently in Safari
+## [0.1.0] - 2026-08-09
 
-## [2.12.1] - 2026-01-15
-
-### Fixed
-- Workspace owner transfer failing when target had a pending invite
-- Timezone off-by-one on due date reminders for users in UTC-negative zones
+### Added
+- Hybrid retrieval (vector + BM25 + RRF)
+- Streaming chat and citation audit
+- Markdown, HTML, tickets, changelog, and OpenAPI connectors
 """
 
 TICKETS = [
     {
-        "id": "T-10021",
-        "subject": "How do I cancel my subscription mid-cycle?",
+        "id": "T-1001",
+        "subject": "Chat returns 401",
         "status": "resolved",
-        "created_at": "2026-03-01T10:12:00Z",
-        "updated_at": "2026-03-01T11:05:00Z",
-        "tags": ["billing", "cancellation"],
+        "created_at": "2026-08-10T10:12:00Z",
+        "updated_at": "2026-08-10T11:05:00Z",
+        "tags": ["auth"],
         "messages": [
-            {"author": "user", "body": "I want to cancel my Team plan today. Will I get a refund for the rest of the month?", "ts": "2026-03-01T10:12:00Z"},
-            {"author": "agent", "body": "Monthly plans aren't prorated on cancellation, but you keep full access until your next billing date. After that your workspace moves to Free automatically. To cancel: Settings > Billing > Cancel subscription.", "ts": "2026-03-01T10:44:00Z"},
-            {"author": "user", "body": "Thanks, that worked.", "ts": "2026-03-01T11:05:00Z"},
+            {"author": "user", "body": "The UI says invalid API key when I send a question.", "ts": "2026-08-10T10:12:00Z"},
+            {"author": "agent", "body": "Paste the same value as API_KEY from your .env into the key field. The field is empty on purpose and is sent as the x-api-key header.", "ts": "2026-08-10T10:44:00Z"},
+            {"author": "user", "body": "That worked.", "ts": "2026-08-10T11:05:00Z"},
         ],
     },
     {
-        "id": "T-10088",
-        "subject": "SSO redirect loop with Okta",
+        "id": "T-1002",
+        "subject": "Answers ignore a file I just added",
         "status": "resolved",
-        "created_at": "2026-03-05T14:22:00Z",
-        "updated_at": "2026-03-05T16:40:00Z",
-        "tags": ["sso", "okta"],
+        "created_at": "2026-08-12T14:22:00Z",
+        "updated_at": "2026-08-12T16:40:00Z",
+        "tags": ["ingest"],
         "messages": [
-            {"author": "user", "body": "After clicking Sign in with SSO our users get bounced back to the login page repeatedly. Okta shows the auth as successful.", "ts": "2026-03-05T14:22:00Z"},
-            {"author": "agent", "body": "Almost always a NameID format mismatch. In Okta, open the Flowpoint app, go to General > SAML Settings > Edit, and set Name ID format to EmailAddress. Save and re-test.", "ts": "2026-03-05T15:30:00Z"},
-            {"author": "user", "body": "That fixed it, thank you.", "ts": "2026-03-05T16:40:00Z"},
+            {"author": "user", "body": "I copied a markdown file into data/sample_docs but chat still says it is not in the files.", "ts": "2026-08-12T14:22:00Z"},
+            {"author": "agent", "body": "Ingest is not automatic. Run python -m scripts.bootstrap_index or POST /ingest/run. Then ask again.", "ts": "2026-08-12T15:30:00Z"},
+            {"author": "user", "body": "Got it, ingest fixed it.", "ts": "2026-08-12T16:40:00Z"},
         ],
     },
     {
-        "id": "T-10142",
-        "subject": "Automation ran twice on the same task",
+        "id": "T-1003",
+        "subject": "Want citations not a generic essay",
         "status": "resolved",
-        "created_at": "2026-02-20T08:00:00Z",
-        "updated_at": "2026-02-21T09:10:00Z",
-        "tags": ["automations", "bug"],
+        "created_at": "2026-08-14T08:00:00Z",
+        "updated_at": "2026-08-14T09:10:00Z",
+        "tags": ["citations"],
         "messages": [
-            {"author": "user", "body": "Our Slack notify automation posted two messages when I moved a task to Done.", "ts": "2026-02-20T08:00:00Z"},
-            {"author": "agent", "body": "Known issue with rapid consecutive status updates firing the trigger twice. Fixed in 2.14.0 released March 12. Please upgrade if you're on an older self-hosted version; cloud customers are already on the fix.", "ts": "2026-02-21T09:10:00Z"},
-        ],
-    },
-    {
-        "id": "T-10203",
-        "subject": "Can't upload 80MB video attachment in Safari",
-        "status": "resolved",
-        "created_at": "2026-01-28T12:00:00Z",
-        "updated_at": "2026-01-29T10:00:00Z",
-        "tags": ["attachments", "safari"],
-        "messages": [
-            {"author": "user", "body": "Uploads over ~50MB silently fail in Safari. Works in Chrome.", "ts": "2026-01-28T12:00:00Z"},
-            {"author": "agent", "body": "Confirmed — fixed in 2.13.0. If you're still hitting it, hard-refresh (Cmd-Shift-R) to clear the old client.", "ts": "2026-01-29T10:00:00Z"},
+            {"author": "user", "body": "The model answered without pointing at a file.", "ts": "2026-08-14T08:00:00Z"},
+            {"author": "agent", "body": "Answers should include [1] style markers from retrieved passages. If markers are missing, the files may not contain the fact — add a clearer doc and re-ingest. Invented markers are stripped.", "ts": "2026-08-14T09:10:00Z"},
         ],
     },
 ]
 
 OPENAPI = {
     "openapi": "3.0.3",
-    "info": {"title": "Flowpoint API", "version": "1.0.0"},
+    "info": {
+        "title": "Ask HTTP API",
+        "version": "0.1.0",
+        "description": "Chat and ingest over files you indexed.",
+    },
     "paths": {
-        "/v1/projects": {
-            "get": {
-                "operationId": "listProjects",
-                "summary": "List projects",
-                "description": "Returns all projects visible to the authenticated token.",
-                "parameters": [
-                    {"name": "limit", "in": "query", "required": False, "description": "Max results (default 50, cap 200)."},
-                    {"name": "cursor", "in": "query", "required": False, "description": "Pagination cursor from previous response."},
-                ],
-                "responses": {"200": {"description": "A paginated list of projects."}, "401": {"description": "Invalid token."}},
-            },
+        "/chat": {
             "post": {
-                "operationId": "createProject",
-                "summary": "Create a project",
-                "description": "Creates a new project in the workspace. Requires write scope.",
-                "requestBody": {"content": {"application/json": {"schema": {"type": "object", "properties": {"name": {"type": "string"}, "template": {"type": "string"}}}}}},
-                "responses": {"201": {"description": "Project created."}, "400": {"description": "Invalid request."}, "403": {"description": "Insufficient scope."}},
-            },
+                "operationId": "chat",
+                "summary": "Ask a question (JSON)",
+                "description": "Blocking chat. Requires x-api-key. Optional source_types filter: markdown_docs, help_center, tickets, changelog, openapi.",
+                "parameters": [
+                    {"name": "x-api-key", "in": "header", "required": True, "description": "Must match API_KEY."},
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "question": {"type": "string"},
+                                    "source_types": {"type": "array", "items": {"type": "string"}},
+                                    "use_cache": {"type": "boolean"},
+                                },
+                                "required": ["question"],
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {"description": "Answer, citations, and timings."},
+                    "401": {"description": "Invalid API key."},
+                },
+            }
         },
-        "/v1/tasks/{task_id}": {
+        "/chat/stream": {
+            "post": {
+                "operationId": "chatStream",
+                "summary": "Ask a question (SSE)",
+                "description": "Same body as POST /chat. Streams event: token then a final event: meta with citations.",
+                "responses": {
+                    "200": {"description": "text/event-stream"},
+                    "401": {"description": "Invalid API key."},
+                },
+            }
+        },
+        "/ingest/run": {
+            "post": {
+                "operationId": "ingestRun",
+                "summary": "Re-index files on disk",
+                "description": "Full ingest pass. Unchanged files are skipped. Requires x-api-key.",
+                "responses": {
+                    "200": {"description": "Counts of new, updated, unchanged, deleted."},
+                    "401": {"description": "Invalid API key."},
+                },
+            }
+        },
+        "/health": {
             "get": {
-                "operationId": "getTask",
-                "summary": "Get a task",
-                "parameters": [{"name": "task_id", "in": "path", "required": True, "description": "Task ID."}],
-                "responses": {"200": {"description": "The task."}, "404": {"description": "Not found."}},
-            },
-            "patch": {
-                "operationId": "updateTask",
-                "summary": "Update a task",
-                "parameters": [{"name": "task_id", "in": "path", "required": True, "description": "Task ID."}],
-                "requestBody": {"content": {"application/json": {"schema": {"type": "object"}}}},
-                "responses": {"200": {"description": "Updated task."}, "404": {"description": "Not found."}},
-            },
+                "operationId": "health",
+                "summary": "Dependency health",
+                "description": "Reports Qdrant, Redis, and configured LLM providers. No auth.",
+                "responses": {"200": {"description": "Health payload."}},
+            }
         },
     },
 }
 
 
 def main() -> None:
-    (ROOT / "sample_docs").mkdir(parents=True, exist_ok=True)
+    docs_root = ROOT / "sample_docs"
+    if docs_root.exists():
+        for path in docs_root.rglob("*"):
+            if path.is_file():
+                path.unlink()
+    docs_root.mkdir(parents=True, exist_ok=True)
     for rel, body in DOCS.items():
-        path = ROOT / "sample_docs" / rel
+        path = docs_root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(body, encoding="utf-8")
+
+    help_root = ROOT / "sample_help_center"
+    if help_root.exists():
+        for path in help_root.glob("*.html"):
+            path.unlink()
+    help_root.mkdir(parents=True, exist_ok=True)
+    for rel, body in HELP_HTML.items():
+        (help_root / rel).write_text(body, encoding="utf-8")
 
     (ROOT / "CHANGELOG.md").write_text(CHANGELOG, encoding="utf-8")
 
@@ -366,7 +374,10 @@ def main() -> None:
 
     (ROOT / "openapi.json").write_text(json.dumps(OPENAPI, indent=2), encoding="utf-8")
 
-    print(f"Seeded: {len(DOCS)} docs, 1 changelog, {len(TICKETS)} tickets, 1 openapi spec")
+    print(
+        f"Seeded: {len(DOCS)} docs, {len(HELP_HTML)} HTML articles, "
+        f"1 changelog, {len(TICKETS)} tickets, 1 openapi spec"
+    )
 
 
 if __name__ == "__main__":
