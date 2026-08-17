@@ -192,181 +192,415 @@ _UI_HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Flowpoint Support</title>
-<!-- Apply saved theme before render to avoid flash -->
+<title>Flowpoint</title>
 <script>
-  (function(){
+  (function () {
     var t = localStorage.getItem('fp-theme');
     if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark');
     }
   })();
 </script>
-<script>window.tailwind={config:{darkMode:'class'}}</script>
-<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
-  * { font-family: 'Inter', system-ui, sans-serif; }
-
-  #log::-webkit-scrollbar { width: 5px; }
-  #log::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-  .dark #log::-webkit-scrollbar-thumb { background: #475569; }
-
-  .dot { width:7px;height:7px;border-radius:50%;display:inline-block;animation:blink 1.2s infinite ease-in-out;background:#94a3b8; }
-  .dark .dot { background: #64748b; }
-  .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
-  @keyframes blink{0%,80%,100%{opacity:.2;transform:scale(.75)}40%{opacity:1;transform:scale(1)}}
-
-  .appear{animation:up .2s ease}
-  @keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-  /* Named classes for JS-created elements so dark: variants work without dynamic Tailwind scanning */
-  .bot-bubble {
-    background:#fff; border:1px solid #e2e8f0; color:#334155;
-    border-radius:0 1rem 1rem 1rem; padding:.75rem 1rem;
-    box-shadow:0 1px 3px rgba(0,0,0,.06); font-size:.875rem; max-width:32rem;
+  :root {
+    --bg0: #f4f5f7;
+    --bg1: #eceef2;
+    --surface: rgba(255, 255, 255, 0.72);
+    --ink: #16181d;
+    --muted: #6b7280;
+    --line: rgba(22, 24, 29, 0.08);
+    --accent: #1f4f46;
+    --accent-soft: rgba(31, 79, 70, 0.08);
+    --user: #16181d;
+    --user-ink: #f7f8fa;
+    --danger: #8f2f2f;
+    --danger-bg: rgba(143, 47, 47, 0.08);
+    --shadow: 0 1px 0 rgba(22, 24, 29, 0.04);
+    --radius: 14px;
+    --font: "Instrument Sans", "Segoe UI", sans-serif;
+    --display: "Instrument Serif", Georgia, serif;
   }
-  .dark .bot-bubble { background:#1e293b; border-color:#334155; color:#cbd5e1; }
-
-  .typing-bubble {
-    background:#fff; border:1px solid #e2e8f0;
-    border-radius:0 1rem 1rem 1rem; padding:.875rem 1rem;
-    box-shadow:0 1px 3px rgba(0,0,0,.06); display:flex; gap:6px; align-items:center;
+  .dark {
+    --bg0: #0e1014;
+    --bg1: #151821;
+    --surface: rgba(24, 27, 34, 0.78);
+    --ink: #e8eaef;
+    --muted: #9aa1ad;
+    --line: rgba(232, 234, 239, 0.1);
+    --accent: #8fb9ad;
+    --accent-soft: rgba(143, 185, 173, 0.12);
+    --user: #e8eaef;
+    --user-ink: #12141a;
+    --danger: #f0a0a0;
+    --danger-bg: rgba(143, 47, 47, 0.22);
+    --shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
   }
-  .dark .typing-bubble { background:#1e293b; border-color:#334155; }
 
-  .cite-bar { display:flex; flex-wrap:wrap; gap:6px; margin-top:.75rem; padding-top:.75rem; border-top:1px solid #e2e8f0; }
-  .dark .cite-bar { border-top-color:#334155; }
-
-  .cite-pill {
-    display:inline-flex; align-items:center; gap:4px; font-size:.75rem;
-    background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe;
-    padding:2px 8px; border-radius:9999px; text-decoration:none; transition:background .15s;
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--font);
+    background:
+      radial-gradient(1200px 600px at 12% -10%, rgba(31, 79, 70, 0.09), transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, rgba(22, 24, 29, 0.05), transparent 50%),
+      linear-gradient(180deg, var(--bg0), var(--bg1));
+    overflow: hidden;
   }
-  .cite-pill:hover { background:#e0e7ff; }
-  .dark .cite-pill { background:rgba(67,56,202,.18); color:#a5b4fc; border-color:rgba(99,102,241,.3); }
-  .dark .cite-pill:hover { background:rgba(67,56,202,.3); }
-
-  .error-icon {
-    width:2rem; height:2rem; border-radius:9999px; background:#fee2e2; color:#ef4444;
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
-    font-size:.75rem; font-weight:700;
+  .dark body,
+  body {
+    transition: background 0.3s ease, color 0.3s ease;
   }
-  .dark .error-icon { background:rgba(127,29,29,.5); color:#f87171; }
 
-  .error-bubble {
-    background:#fef2f2; border:1px solid #fecaca; color:#b91c1c;
-    border-radius:0 1rem 1rem 1rem; padding:.75rem 1rem;
-    box-shadow:0 1px 3px rgba(0,0,0,.06); font-size:.875rem; max-width:32rem;
+  .shell {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    max-width: 720px;
+    margin: 0 auto;
   }
-  .dark .error-bubble { background:rgba(69,10,10,.5); border-color:rgba(127,29,29,.5); color:#fca5a5; }
 
-  /* Markdown prose */
-  .prose p{margin:0 0 .45em}.prose p:last-child{margin:0}
-  .prose ol{padding-left:1.3em;list-style:decimal;margin-bottom:.4em}
-  .prose ul{padding-left:1.3em;list-style:disc;margin-bottom:.4em}
-  .prose li{margin-bottom:.15em}
-  .prose strong{font-weight:600}
-  .prose code{background:#f1f5f9;border-radius:4px;padding:1px 5px;font-size:.82em;font-family:ui-monospace,monospace}
-  .dark .prose { color:#cbd5e1; }
-  .dark .prose strong { color:#e2e8f0; }
-  .dark .prose code { background:#0f172a; color:#a5b4fc; }
+  header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.25rem 0.85rem;
+    animation: fade-in 0.5s ease both;
+  }
+  .brand {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .brand strong {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 1.65rem;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .brand span {
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.01em;
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .ghost-btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  }
+  .ghost-btn:hover { color: var(--ink); border-color: rgba(22, 24, 29, 0.18); }
+  .dark .ghost-btn:hover { border-color: rgba(232, 234, 239, 0.22); }
+  .ghost-btn:active { transform: scale(0.96); }
+  .ghost-btn svg { width: 1rem; height: 1rem; }
+  .icon-sun { display: none; }
+  .dark .icon-sun { display: block; }
+  .dark .icon-moon { display: none; }
 
-  /* Theme toggle icon visibility */
-  .icon-sun  { display:none; }
-  .icon-moon { display:block; }
-  .dark .icon-sun  { display:block; }
-  .dark .icon-moon { display:none; }
+  .key-row {
+    flex-shrink: 0;
+    margin: 0 1.25rem 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+    animation: fade-in 0.55s ease 0.05s both;
+  }
+  .key-row svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .key-row input {
+    flex: 1;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+  .key-row input::placeholder { color: var(--muted); opacity: 0.7; }
+
+  #log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.25rem 1.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(107, 114, 128, 0.35) transparent;
+  }
+  #msgs {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+    min-height: 100%;
+  }
+
+  .row { display: flex; gap: 0.85rem; align-items: flex-start; }
+  .row.user { justify-content: flex-end; }
+  .appear { animation: rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  .mark {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--accent);
+    font-family: var(--display);
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+  }
+
+  .bot-msg {
+    max-width: 38rem;
+    color: var(--ink);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    padding-top: 0.15rem;
+  }
+  .user-msg {
+    max-width: 28rem;
+    background: var(--user);
+    color: var(--user-ink);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius) var(--radius) 4px var(--radius);
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .typing {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    padding: 0.55rem 0.1rem;
+    color: var(--muted);
+  }
+  .typing i {
+    width: 0.35rem;
+    height: 0.35rem;
+    border-radius: 999px;
+    background: currentColor;
+    display: block;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .typing i:nth-child(2) { animation-delay: 0.15s; }
+  .typing i:nth-child(3) { animation-delay: 0.3s; }
+
+  .cite-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.85rem;
+    margin-top: 0.9rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--line);
+  }
+  .cite-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s ease, opacity 0.15s ease;
+  }
+  .cite-link:hover { border-bottom-color: currentColor; }
+  .cite-link b { font-weight: 500; margin-right: 0.25rem; opacity: 0.7; }
+
+  .error-row { display: flex; gap: 0.75rem; align-items: flex-start; }
+  .error-msg {
+    color: var(--danger);
+    background: var(--danger-bg);
+    border: 1px solid rgba(143, 47, 47, 0.18);
+    border-radius: var(--radius);
+    padding: 0.75rem 0.95rem;
+    font-size: 0.88rem;
+    max-width: 32rem;
+  }
+
+  .prose p { margin: 0 0 0.55em; }
+  .prose p:last-child { margin: 0; }
+  .prose ol, .prose ul { margin: 0 0 0.55em; padding-left: 1.2em; }
+  .prose li { margin: 0.15em 0; }
+  .prose strong { font-weight: 600; }
+  .prose code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.84em;
+    background: var(--accent-soft);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+  }
+  .prose a { color: var(--accent); }
+
+  footer {
+    flex-shrink: 0;
+    padding: 0.75rem 1.25rem 1.15rem;
+    animation: fade-in 0.6s ease 0.08s both;
+  }
+  form {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.65rem;
+    padding: 0.55rem 0.55rem 0.55rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--surface);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  form:focus-within {
+    border-color: rgba(31, 79, 70, 0.35);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .dark form:focus-within { border-color: rgba(143, 185, 173, 0.4); }
+  textarea {
+    flex: 1;
+    border: 0;
+    outline: none;
+    resize: none;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    max-height: 120px;
+    padding: 0.45rem 0;
+  }
+  textarea::placeholder { color: var(--muted); }
+  .send {
+    appearance: none;
+    border: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #f7faf9;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .dark .send { color: #0e1014; }
+  .send:hover { opacity: 0.92; }
+  .send:active { transform: scale(0.96); }
+  .send svg { width: 1rem; height: 1rem; }
+  .hint {
+    margin: 0.65rem 0 0;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes pulse {
+    0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-1px); }
+  }
+
+  @media (max-width: 640px) {
+    header, #log, footer { padding-left: 1rem; padding-right: 1rem; }
+    .key-row { margin-left: 1rem; margin-right: 1rem; }
+    .brand strong { font-size: 1.45rem; }
+  }
 </style>
 </head>
-<body class="h-screen flex flex-col bg-slate-50 dark:bg-gray-950 overflow-hidden transition-colors duration-200">
-
-<!-- Header -->
-<header class="flex-shrink-0 bg-gradient-to-r from-indigo-600 via-blue-600 to-blue-500 shadow-lg">
-  <div class="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-    <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shadow-inner">
-      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-      </svg>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand">
+      <strong>Flowpoint</strong>
+      <span>Support</span>
     </div>
-    <div>
-      <h1 class="text-white font-bold text-base leading-tight">Flowpoint Support</h1>
-      <p class="text-blue-200 text-xs">AI assistant &middot; Docs &amp; tickets</p>
-    </div>
-    <div class="ml-auto flex items-center gap-3">
-      <div class="flex items-center gap-1.5">
-        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-        <span class="text-blue-100 text-xs font-medium">Online</span>
-      </div>
-      <!-- Dark/Light toggle -->
-      <button id="theme-btn" title="Toggle dark mode"
-        class="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors">
-        <!-- Moon (shown in light mode) -->
-        <svg class="icon-moon w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+    <div class="header-actions">
+      <button id="theme-btn" class="ghost-btn" type="button" title="Toggle theme" aria-label="Toggle theme">
+        <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
             d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
         </svg>
-        <!-- Sun (shown in dark mode) -->
-        <svg class="icon-sun w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        <svg class="icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
             d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>
         </svg>
       </button>
     </div>
-  </div>
-</header>
+  </header>
 
-<!-- API key bar -->
-<div class="flex-shrink-0 bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-700 transition-colors duration-200">
-  <div class="max-w-2xl mx-auto px-4 py-2 flex items-center gap-2">
-    <svg class="w-3.5 h-3.5 text-slate-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+  <div class="key-row">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
         d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
     </svg>
-    <input id="key" type="password" value=""
-      class="flex-1 text-xs text-slate-500 dark:text-gray-400 bg-transparent outline-none" placeholder="API key">
+    <input id="key" type="password" value="" placeholder="API key" autocomplete="off" spellcheck="false">
   </div>
-</div>
 
-<!-- Messages -->
-<div id="log" class="flex-1 overflow-y-auto px-4 py-5 transition-colors duration-200">
-  <div id="msgs" class="max-w-2xl mx-auto flex flex-col gap-5">
-    <!-- Welcome -->
-    <div class="flex gap-3 appear">
-      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow text-white text-xs font-bold">F</div>
-      <div class="bot-bubble">
-        Hi! I'm Flowpoint's AI support assistant. Ask me about billing, SSO setup, automations, the API, or anything else in the docs.
+  <div id="log">
+    <div id="msgs">
+      <div class="row appear">
+        <div class="mark" aria-hidden="true">F</div>
+        <div class="bot-msg">
+          Ask about billing, SSO, automations, the API, or anything in the Flowpoint docs.
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Input -->
-<footer class="flex-shrink-0 bg-white dark:bg-gray-900 border-t border-slate-200 dark:border-gray-700 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] px-4 py-3 transition-colors duration-200">
-  <div class="max-w-2xl mx-auto">
-    <form id="f" class="flex items-end gap-2">
-      <div class="flex-1 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-600 rounded-2xl px-4 py-2.5
-        focus-within:border-indigo-400 dark:focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 dark:focus-within:ring-indigo-900 transition-all">
-        <textarea id="q" rows="1" autofocus placeholder="Ask anything about Flowpoint…"
-          class="w-full bg-transparent text-sm text-slate-800 dark:text-gray-200 placeholder-slate-400 dark:placeholder-gray-500 outline-none resize-none leading-6"
-          style="max-height:120px;overflow-y:auto"></textarea>
-      </div>
-      <button type="submit"
-        class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600
-          hover:from-indigo-700 hover:to-blue-700 flex items-center justify-center
-          text-white shadow transition-all active:scale-95 hover:shadow-md flex-shrink-0">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+  <footer>
+    <form id="f">
+      <textarea id="q" rows="1" autofocus placeholder="Ask Flowpoint…"></textarea>
+      <button class="send" type="submit" aria-label="Send">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M5 12h14M13 5l7 7-7 7"/>
         </svg>
       </button>
     </form>
-    <p class="text-center text-xs text-slate-400 dark:text-gray-500 mt-2">Answers cite Flowpoint docs and resolved support tickets</p>
-  </div>
-</footer>
+    <p class="hint">Answers cite product docs and resolved tickets</p>
+  </footer>
+</div>
 
 <script>
 const logEl = document.getElementById('log');
@@ -374,13 +608,11 @@ const msgs  = document.getElementById('msgs');
 const form  = document.getElementById('f');
 const qEl   = document.getElementById('q');
 
-// ── Theme toggle ──────────────────────────────────────────────────────────────
 document.getElementById('theme-btn').addEventListener('click', () => {
   const isDark = document.documentElement.classList.toggle('dark');
   localStorage.setItem('fp-theme', isDark ? 'dark' : 'light');
 });
 
-// ── Textarea auto-grow ────────────────────────────────────────────────────────
 qEl.addEventListener('input', () => {
   qEl.style.height = 'auto';
   qEl.style.height = Math.min(qEl.scrollHeight, 120) + 'px';
@@ -389,7 +621,6 @@ qEl.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
 });
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -406,19 +637,19 @@ function renderMarkdown(md) {
 }
 function scroll() { logEl.scrollTop = logEl.scrollHeight; }
 
-function avatar() {
+function mark() {
   const d = document.createElement('div');
-  d.className = 'w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow text-white text-xs font-bold';
+  d.className = 'mark';
+  d.setAttribute('aria-hidden', 'true');
   d.textContent = 'F';
   return d;
 }
 
-// ── Message builders ──────────────────────────────────────────────────────────
 function addUser(text) {
   const row = document.createElement('div');
-  row.className = 'flex justify-end appear';
+  row.className = 'row user appear';
   const bubble = document.createElement('div');
-  bubble.className = 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white rounded-2xl rounded-tr-none px-4 py-3 shadow-sm text-sm max-w-sm';
+  bubble.className = 'user-msg';
   bubble.textContent = text;
   row.appendChild(bubble);
   msgs.appendChild(row); scroll();
@@ -426,11 +657,12 @@ function addUser(text) {
 
 function addTyping() {
   const row = document.createElement('div');
-  row.id = 'typing'; row.className = 'flex gap-3 appear';
+  row.id = 'typing';
+  row.className = 'row appear';
   const tb = document.createElement('div');
-  tb.className = 'typing-bubble';
-  tb.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
-  row.appendChild(avatar());
+  tb.className = 'typing';
+  tb.innerHTML = '<i></i><i></i><i></i>';
+  row.appendChild(mark());
   row.appendChild(tb);
   msgs.appendChild(row); scroll();
 }
@@ -439,13 +671,13 @@ function removeTyping() { const t = document.getElementById('typing'); if (t) t.
 
 function addBot() {
   const row = document.createElement('div');
-  row.className = 'flex gap-3 appear';
+  row.className = 'row appear';
   const bubble = document.createElement('div');
-  bubble.className = 'bot-bubble';
+  bubble.className = 'bot-msg';
   const prose = document.createElement('div');
   prose.className = 'prose';
   bubble.appendChild(prose);
-  row.appendChild(avatar());
+  row.appendChild(mark());
   row.appendChild(bubble);
   msgs.appendChild(row);
   return { prose, bubble };
@@ -454,14 +686,10 @@ function addBot() {
 function addError(msg) {
   removeTyping();
   const row = document.createElement('div');
-  row.className = 'flex gap-3 appear';
-  const icon = document.createElement('div');
-  icon.className = 'error-icon';
-  icon.textContent = '!';
+  row.className = 'error-row appear';
   const bubble = document.createElement('div');
-  bubble.className = 'error-bubble';
+  bubble.className = 'error-msg';
   bubble.textContent = msg;
-  row.appendChild(icon);
   row.appendChild(bubble);
   msgs.appendChild(row); scroll();
 }
@@ -472,20 +700,22 @@ function addCitations(citations, bubble) {
   bar.className = 'cite-bar';
   citations.forEach(c => {
     const a = document.createElement('a');
-    a.href = safeUrl(c.url); a.target = '_blank'; a.rel = 'noopener noreferrer';
-    a.className = 'cite-pill';
-    a.innerHTML = '<span style="font-weight:600">[' + esc(c.marker) + ']</span> ' + esc(c.title);
+    a.href = safeUrl(c.url);
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.className = 'cite-link';
+    a.innerHTML = '<b>[' + esc(c.marker) + ']</b>' + esc(c.title);
     bar.appendChild(a);
   });
   bubble.appendChild(bar);
 }
 
-// ── Chat submit ───────────────────────────────────────────────────────────────
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const question = qEl.value.trim();
   if (!question) return;
-  qEl.value = ''; qEl.style.height = 'auto';
+  qEl.value = '';
+  qEl.style.height = 'auto';
 
   addUser(question);
   addTyping();
