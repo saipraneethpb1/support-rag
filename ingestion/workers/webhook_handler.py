@@ -83,7 +83,7 @@ async def ticket_resolved(
         source_id=tid,
         title=subject,
         content="\n".join(lines),
-        url=f"https://support.example.com/tickets/{tid}",
+        url=f"https://example.com/tickets/{tid}",
         updated_at=datetime.now(timezone.utc),
         extra_metadata={"status": "resolved", "tags": payload.tags},
     )
