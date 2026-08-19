@@ -166,9 +166,9 @@ async def lifespan(app: FastAPI):
 _settings = get_settings()
 
 app = FastAPI(
-    title="Support RAG",
+    title="Ask",
     version="0.1.0",
-    description="Production-grade RAG chatbot for customer support over Flowpoint docs + tickets.",
+    description="Ask questions over files you ingest: markdown, HTML, tickets, changelogs, and OpenAPI specs.",
     lifespan=lifespan,
 )
 
@@ -192,7 +192,7 @@ _UI_HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Flowpoint</title>
+<title>Ask</title>
 <script>
   (function () {
     var t = localStorage.getItem('fp-theme');
@@ -553,8 +553,8 @@ _UI_HTML = """<!doctype html>
 <div class="shell">
   <header>
     <div class="brand">
-      <strong>Flowpoint</strong>
-      <span>Support</span>
+      <strong>Ask</strong>
+      <span>Your files</span>
     </div>
     <div class="header-actions">
       <button id="theme-btn" class="ghost-btn" type="button" title="Toggle theme" aria-label="Toggle theme">
@@ -581,9 +581,10 @@ _UI_HTML = """<!doctype html>
   <div id="log">
     <div id="msgs">
       <div class="row appear">
-        <div class="mark" aria-hidden="true">F</div>
+        <div class="mark" aria-hidden="true">A</div>
         <div class="bot-msg">
-          Ask about billing, SSO, automations, the API, or anything in the Flowpoint docs.
+          This answers from files you ingest — markdown, HTML, tickets, changelogs, or an OpenAPI spec.
+          Put your own files in the <code>data/</code> folder, run ingest, then ask. I cite the source for each claim.
         </div>
       </div>
     </div>
@@ -591,14 +592,14 @@ _UI_HTML = """<!doctype html>
 
   <footer>
     <form id="f">
-      <textarea id="q" rows="1" autofocus placeholder="Ask Flowpoint…"></textarea>
+      <textarea id="q" rows="1" autofocus placeholder="Ask about your files…"></textarea>
       <button class="send" type="submit" aria-label="Send">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9" d="M5 12h14M13 5l7 7-7 7"/>
         </svg>
       </button>
     </form>
-    <p class="hint">Answers cite product docs and resolved tickets</p>
+    <p class="hint">Answers come only from ingested files, with citations</p>
   </footer>
 </div>
 
@@ -641,7 +642,7 @@ function mark() {
   const d = document.createElement('div');
   d.className = 'mark';
   d.setAttribute('aria-hidden', 'true');
-  d.textContent = 'F';
+  d.textContent = 'A';
   return d;
 }
 

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><title>Add your own files</title></head>
+<body>
+  <nav>Help</nav>
+  <article>
+    <h1>Add your own files</h1>
+    <p>Drop markdown into <code>data/sample_docs</code>, HTML into
+    <code>data/sample_help_center</code>, then run ingest. The app does
+    not read files until ingest runs.</p>
+    <h2>Ingest</h2>
+    <p>Use <code>python -m scripts.bootstrap_index</code> or
+    <code>POST /ingest/run</code> with your API key.</p>
+    <p>Unchanged files are skipped. Deleted files drop out of the index
+    on a full ingest pass.</p>
+  </article>
+  <footer>Ask</footer>
+</body>
+</html>

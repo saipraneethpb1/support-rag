@@ -1,27 +1,43 @@
-# Support RAG — Production-grade customer support chatbot
+# Ask — questions over your files
 
 **[Live Demo](https://support-rag-p177.onrender.com)**
 
-A full RAG system for customer support over product docs, help articles,
-resolved tickets, changelog, and API reference. Built step-by-step as a
-portfolio demonstration of production RAG engineering.
+A small RAG app you can run yourself. Put markdown, HTML, tickets, a
+changelog, or an OpenAPI spec in `data/`, ingest, and ask. Answers cite
+the passages they used. It is not a company support bot — the bundled
+files explain how to use the app, and you replace them with yours.
+
+## How to use it
+
+1. Start Qdrant + Redis, install, and set API keys (see Local setup).
+2. Keep or replace files under `data/` (see the table below).
+3. Index: `python -m scripts.bootstrap_index`
+4. Open http://localhost:8000, paste `API_KEY`, ask a question.
+
+| You have… | Put it here |
+|-----------|-------------|
+| Markdown docs | `data/sample_docs/` |
+| HTML articles | `data/sample_help_center/` |
+| Resolved tickets (JSONL) | `data/sample_tickets/tickets.jsonl` |
+| Changelog | `data/CHANGELOG.md` |
+| OpenAPI 3 JSON | `data/openapi.json` |
+
+Then ingest again. Unchanged files are skipped.
 
 ## What's in the box
 
 - **Hybrid retrieval**: vector (Qdrant + Gemini embeddings) + BM25, fused via RRF; optional cross-encoder rerank when `RERANKER_ENABLED=true` and `[local]` extras are installed
-- **Incremental ingestion**: content-hash diffing in a doc registry means only changed docs are re-embedded. Push via webhooks; optional pull poller (`POLLER_ENABLED`); manual `POST /ingest/run`
-- **Multi-source connectors**: markdown docs, help-center HTML, tickets (JSONL), changelog, OpenAPI
-- **Structure-aware chunking**: splits on H1/H2/H3, prepends title + heading path
-- **LLM router**: Groq primary → Gemini fallback (`google-genai`), retries, exponential backoff, circuit breaker
-- **Citation audit**: flags when the LLM cites markers not present in context — strong hallucination signal, exposed in metrics
-- **Streaming**: `/chat/stream` returns SSE tokens live, then a final meta event with citations (uses semantic cache when available)
-- **Semantic cache**: near-duplicate queries return cached answers; corpus version bumps on successful ingest
-- **Observability**: Langfuse tracing (optional), structured logging, per-stage timings
-- **Evaluation**:
-  - Retrieval: Hit@K / MRR / nDCG / Recall across 3 retriever configs
-  - Answer: faithfulness, relevancy, hallucination rate (LLM-as-judge)
+- **Incremental ingestion**: content-hash diffing; webhooks; optional poller (`POLLER_ENABLED`); `POST /ingest/run`
+- **Connectors**: markdown, HTML, tickets (JSONL), changelog, OpenAPI
+- **Structure-aware chunking**: splits on headings, prepends title + heading path
+- **LLM router**: Groq primary → Gemini fallback, retries, circuit breaker
+- **Citation audit**: flags markers that were not in context
+- **Streaming**: `/chat/stream` SSE tokens, then a meta event with citations
+- **Semantic cache**: near-duplicate questions; invalidated when ingest changes the corpus
+- **Observability**: optional Langfuse, structured logs, per-stage timings
+- **Evaluation**: retrieval (Hit@K / MRR / nDCG / Recall) and answer faithfulness
 
-Everything runs on free tiers. Render/Docker keep the reranker and local ML models off to fit 512MB RAM.
+Runs on free tiers. Docker keeps the reranker off so it fits 512MB RAM.
 
 ## Local setup
 
@@ -36,16 +52,19 @@ pip install -e ".[dev]"
 
 # 3. Configure
 cp .env.example .env
-# Edit .env: set GROQ_API_KEY and GOOGLE_API_KEY (embeddings + Gemini fallback)
+# Set GROQ_API_KEY and GOOGLE_API_KEY (embeddings + Gemini fallback)
+# Set API_KEY to whatever you will paste in the UI
 
-# 4. Seed demo data + bootstrap index
+# 4. Example files + index
 python -m scripts.seed_demo_data
 python -m scripts.bootstrap_index
 
-# 5. Run API
+# 5. Run
 uvicorn api.main:app --reload
-# Open http://localhost:8000 for the demo UI (paste your API_KEY)
+# Open http://localhost:8000 and paste API_KEY
 ```
+
+Try asking: “How do I add my own files?” or “Why did chat return 401?”
 
 Defaults use Gemini embeddings (`gemini-embedding-001`, dim 768). For local
 sentence-transformers instead:
@@ -61,13 +80,13 @@ RERANKER_ENABLED=true   # requires [local] extras
 
 | Method | Path                         | Auth    | Description                         |
 |--------|------------------------------|---------|-------------------------------------|
-| GET    | `/`                          | none    | Minimal chat UI                     |
+| GET    | `/`                          | none    | Chat UI                             |
 | GET    | `/health`                    | none    | Dependency health                   |
 | POST   | `/chat`                      | API key | Blocking chat (uses semantic cache) |
 | POST   | `/chat/stream`               | API key | SSE streaming chat                  |
-| POST   | `/ingest/run`                | API key | Force a full ingest pass            |
+| POST   | `/ingest/run`                | API key | Full ingest pass                    |
 | POST   | `/webhooks/tickets/resolved` | secret  | Single-ticket ingest on push        |
-| POST   | `/webhooks/docs/updated`     | secret  | Trigger docs re-ingest on CI build  |
+| POST   | `/webhooks/docs/updated`     | secret  | Re-ingest on docs CI                |
 | GET    | `/docs`                      | none    | OpenAPI interactive docs            |
 
 Webhook auth uses `WEBHOOK_SECRET` when set, otherwise `API_KEY`.
@@ -76,26 +95,26 @@ Webhook auth uses `WEBHOOK_SECRET` when set, otherwise `API_KEY`.
 
 ```
 support-rag/
-├── api/                    # FastAPI app, routes, auth, rate limit
+├── api/                    # FastAPI app, routes, auth, rate limit, chat UI
 ├── config/                 # Settings + editable prompt templates
 ├── ingestion/              # Connectors, chunker, embedder, registry, pipeline
 ├── retrieval/              # Vector, BM25, hybrid, rerank, transforms, facade
 ├── generation/             # LLM router, prompt, citation, generator
 ├── cache/                  # Embedding + semantic caches
 ├── observability/          # Langfuse + structlog
-├── evaluation/             # Retrieval + answer eval harnesses, golden QA set
-├── scripts/                # seed + bootstrap
-├── tests/                  # unit + integration
-├── data/                   # Sample Flowpoint corpus
+├── evaluation/             # Retrieval + answer eval, golden QA set
+├── scripts/                # seed example files + bootstrap index
+├── tests/
+├── data/                   # Files you ingest (examples ship here)
 ├── Dockerfile
 ├── docker-compose.yml
-└── render.yaml             # Free-tier deploy config
+└── render.yaml
 ```
 
 ## Testing
 
 ```bash
-pytest tests/ -v              # 47 tests
+pytest tests/ -v
 ruff check .
 ```
 
@@ -106,15 +125,18 @@ python -m evaluation.retrieval_eval   # no LLM keys needed
 python -m evaluation.answer_eval      # needs provider key
 ```
 
+Golden questions in `evaluation/datasets/golden_qa.jsonl` match the
+bundled example files. If you replace `data/`, update that set.
+
 ## Deployment (Render free tier)
 
 1. Push to GitHub
 2. Render → New → Blueprint → connect repo
-3. Set secrets: `GROQ_API_KEY`, `GOOGLE_API_KEY`, `QDRANT_URL` (Qdrant Cloud free), `REDIS_URL` (Redis Cloud free)
-4. Blueprint generates `API_KEY` / `WEBHOOK_SECRET`; embeddings use Gemini API (768-dim)
+3. Set secrets: `GROQ_API_KEY`, `GOOGLE_API_KEY`, `QDRANT_URL`, `REDIS_URL`
+4. Blueprint generates `API_KEY` / `WEBHOOK_SECRET`
 
-See `render.yaml` for trade-offs. Cold starts no longer attempt to load a local
-cross-encoder — `RERANKER_ENABLED=false` is honored.
+See `render.yaml`. `RERANKER_ENABLED=false` is honored so cold starts
+do not load a local cross-encoder.
 
 ## Scaling path
 
@@ -124,11 +146,3 @@ cross-encoder — `RERANKER_ENABLED=false` is honored.
 - SQLite registry → Postgres
 - BM25 in-process → OpenSearch / Tantivy (past ~1M chunks)
 - In-memory semantic cache index → Redis Search / HNSW
-
-## Status
-
-- [x] Step 1 — Architecture
-- [x] Step 2 — Ingestion pipeline
-- [x] Step 3 — Retrieval (hybrid + RRF + reranker + transforms + cache)
-- [x] Step 4 — Generation (LLM router, citations, streaming, answer eval)
-- [x] Step 5 — API + deployment

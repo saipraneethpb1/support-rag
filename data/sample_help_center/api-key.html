@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>API key</title></head>
+<body>
+  <nav>Help</nav>
+  <main class="article">
+    <h1>API key</h1>
+    <p>Chat and ingest require the <code>x-api-key</code> header. Set
+    <code>API_KEY</code> in <code>.env</code>. The chat page has a key
+    field at the top; it starts empty.</p>
+    <p>A 401 means the key does not match. Webhooks use
+    <code>WEBHOOK_SECRET</code> if set, otherwise the same API key.</p>
+  </main>
+</body>
+</html>
