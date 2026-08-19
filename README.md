@@ -94,7 +94,7 @@ Webhook auth uses `WEBHOOK_SECRET` when set, otherwise `API_KEY`.
 ## Folder structure
 
 ```
-support-rag/
+ask-docs/
 ├── api/                    # FastAPI app, routes, auth, rate limit, chat UI
 ├── config/                 # Settings + editable prompt templates
 ├── ingestion/              # Connectors, chunker, embedder, registry, pipeline

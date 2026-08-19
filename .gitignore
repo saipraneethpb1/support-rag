@@ -4,4 +4,4 @@ __pycache__/
 *.pyc
 data/registry/
 evaluation/results/
-support_rag.egg-info/
+ask_docs.egg-info/
