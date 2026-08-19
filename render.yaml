@@ -17,7 +17,7 @@
 
 services:
   - type: web
-    name: support-rag
+    name: ask-docs
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
