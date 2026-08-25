@@ -1,6 +1,7 @@
 {"query": "What does this app do?", "relevant_doc_ids": ["markdown_docs::what-this-is.md"]}
 {"query": "Does it browse the web?", "relevant_doc_ids": ["markdown_docs::what-this-is.md"]}
 {"query": "How do I add my own files?", "relevant_doc_ids": ["markdown_docs::add-your-files.md", "help_center::add-your-files.html", "tickets::T-1002"]}
+{"query": "Can I upload files from the chat page?", "relevant_doc_ids": ["markdown_docs::add-your-files.md", "help_center::add-your-files.html"]}
 {"query": "Where do I put markdown?", "relevant_doc_ids": ["markdown_docs::add-your-files.md"]}
 {"query": "How do I re-index after editing a file?", "relevant_doc_ids": ["markdown_docs::add-your-files.md", "openapi::ingestRun", "tickets::T-1002"]}
 {"query": "Chat returns 401 invalid API key", "relevant_doc_ids": ["tickets::T-1001", "help_center::api-key.html", "markdown_docs::ask-questions.md"]}
@@ -15,6 +16,8 @@
 {"query": "Why did answers ignore a file I just added?", "relevant_doc_ids": ["tickets::T-1002", "markdown_docs::add-your-files.md", "markdown_docs::what-this-is.md"]}
 {"query": "GET /health — does it need auth?", "relevant_doc_ids": ["openapi::health", "markdown_docs::run-locally.md"]}
 {"query": "What changed in 0.2.0?", "relevant_doc_ids": ["changelog::0.2.0"]}
+{"query": "What changed in 0.3.0?", "relevant_doc_ids": ["changelog::0.3.0"]}
+{"query": "How do I call POST /ingest/upload?", "relevant_doc_ids": ["openapi::ingestUpload", "markdown_docs::add-your-files.md"]}
 {"query": "When was hybrid retrieval added?", "relevant_doc_ids": ["changelog::0.1.0"]}
 {"query": "How do I call POST /ingest/run?", "relevant_doc_ids": ["openapi::ingestRun", "markdown_docs::add-your-files.md"]}
 {"query": "Can I filter chat to only markdown?", "relevant_doc_ids": ["markdown_docs::ask-questions.md", "openapi::chat"]}

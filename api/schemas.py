@@ -38,6 +38,19 @@ class IngestResponse(BaseModel):
     errors: list[str]
 
 
+class UploadFileResult(BaseModel):
+    filename: str
+    ok: bool
+    changed: bool = False
+    doc_id: str | None = None
+    error: str | None = None
+
+
+class UploadResponse(BaseModel):
+    ingested: int
+    files: list[UploadFileResult]
+
+
 class HealthResponse(BaseModel):
     status: Literal["ok", "degraded"]
     qdrant: bool

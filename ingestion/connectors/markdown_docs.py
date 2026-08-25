@@ -15,21 +15,35 @@ from ingestion.connectors.base import BaseConnector, SourceRecord
 class MarkdownDocsConnector(BaseConnector):
     source_type = "markdown_docs"
 
-    def __init__(self, root_dir: str | Path, base_url: str = "https://docs.example.com"):
+    def __init__(
+        self,
+        root_dir: str | Path,
+        base_url: str = "https://docs.example.com",
+        patterns: tuple[str, ...] = ("*.md",),
+    ):
         self.root = Path(root_dir).resolve()
         self.base_url = base_url.rstrip("/")
+        self.patterns = patterns
 
     async def list_records(self) -> AsyncIterator[SourceRecord]:
         if not self.root.exists():
             return
-        for path in sorted(self.root.rglob("*.md")):
+        seen: set[Path] = set()
+        paths: list[Path] = []
+        for pattern in self.patterns:
+            for path in self.root.rglob(pattern):
+                if path in seen:
+                    continue
+                seen.add(path)
+                paths.append(path)
+        for path in sorted(paths):
             try:
                 content = path.read_text(encoding="utf-8")
             except UnicodeDecodeError:
                 continue
 
             rel = path.relative_to(self.root).as_posix()
-            url_path = rel.removesuffix(".md").removesuffix("/index")
+            url_path = Path(rel).with_suffix("").as_posix().removesuffix("/index")
             url = f"{self.base_url}/{url_path}"
 
             # Title: first H1 if present, else filename

@@ -10,12 +10,13 @@ Routes:
   POST /chat           - blocking JSON chat (auth + rate-limited)
   POST /chat/stream    - SSE streaming chat (auth + rate-limited)
   POST /ingest/run     - force an ingest pass (auth)
+  POST /ingest/upload  - upload documents and index them (auth)
+  GET  /ingest/uploads - list uploaded documents (auth)
   POST /webhooks/*     - source push handlers (shared-secret)
 """
 from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,12 +27,8 @@ from api.routes.chat import router as chat_router
 from api.routes.ingest import router as ingest_router
 from ingestion.workers.webhook_handler import router as webhooks_router
 from ingestion.workers.poller import Poller
+from ingestion.sources import default_connectors
 from ingestion.pipeline import IngestionPipeline
-from ingestion.connectors.markdown_docs import MarkdownDocsConnector
-from ingestion.connectors.help_center_html import HelpCenterHTMLConnector
-from ingestion.connectors.tickets import TicketsConnector
-from ingestion.connectors.changelog import ChangelogConnector
-from ingestion.connectors.openapi import OpenAPIConnector
 from ingestion.embedder import Embedder
 from retrieval.vector_store import VectorStore
 from retrieval.bm25_store import BM25Store
@@ -52,19 +49,7 @@ log = get_logger(__name__)
 
 
 def _build_connectors() -> list:
-    data = Path("data")
-    connectors = []
-    if (data / "sample_docs").exists():
-        connectors.append(MarkdownDocsConnector(data / "sample_docs"))
-    if (data / "sample_help_center").exists():
-        connectors.append(HelpCenterHTMLConnector(data / "sample_help_center"))
-    if (data / "sample_tickets" / "tickets.jsonl").exists():
-        connectors.append(TicketsConnector(data / "sample_tickets" / "tickets.jsonl"))
-    if (data / "CHANGELOG.md").exists():
-        connectors.append(ChangelogConnector(data / "CHANGELOG.md"))
-    if (data / "openapi.json").exists():
-        connectors.append(OpenAPIConnector(data / "openapi.json"))
-    return connectors
+    return default_connectors()
 
 
 @asynccontextmanager
@@ -320,6 +305,15 @@ _UI_HTML = """<!doctype html>
   .icon-sun { display: none; }
   .dark .icon-sun { display: block; }
   .dark .icon-moon { display: none; }
+  .sys-msg {
+    align-self: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.01em;
+    text-align: center;
+    max-width: 28rem;
+  }
+  .sys-msg.error { color: var(--danger); }
 
   .key-row {
     flex-shrink: 0;
@@ -557,6 +551,13 @@ _UI_HTML = """<!doctype html>
       <span>Your files</span>
     </div>
     <div class="header-actions">
+      <input id="file-in" type="file" multiple accept=".md,.txt,.html,.htm,text/markdown,text/plain,text/html" hidden>
+      <button id="upload-btn" class="ghost-btn" type="button" title="Upload documents" aria-label="Upload documents">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+            d="M12 16V4m0 0l-4 4m4-4l4 4M6 20h12"/>
+        </svg>
+      </button>
       <button id="theme-btn" class="ghost-btn" type="button" title="Toggle theme" aria-label="Toggle theme">
         <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
@@ -583,8 +584,7 @@ _UI_HTML = """<!doctype html>
       <div class="row appear">
         <div class="mark" aria-hidden="true">A</div>
         <div class="bot-msg">
-          This answers from files you ingest — markdown, HTML, tickets, changelogs, or an OpenAPI spec.
-          Put your own files in the <code>data/</code> folder, run ingest, then ask. I cite the source for each claim.
+          This answers from files you ingest. Upload .md, .txt, or .html with the arrow in the header, or drop files anywhere on this page. I cite the source for each claim.
         </div>
       </div>
     </div>
@@ -599,7 +599,7 @@ _UI_HTML = """<!doctype html>
         </svg>
       </button>
     </form>
-    <p class="hint">Answers come only from ingested files, with citations</p>
+    <p class="hint">Upload files, then ask. Answers cite what you ingested.</p>
   </footer>
 </div>
 
@@ -612,6 +612,22 @@ const qEl   = document.getElementById('q');
 document.getElementById('theme-btn').addEventListener('click', () => {
   const isDark = document.documentElement.classList.toggle('dark');
   localStorage.setItem('fp-theme', isDark ? 'dark' : 'light');
+});
+
+const fileIn = document.getElementById('file-in');
+document.getElementById('upload-btn').addEventListener('click', () => fileIn.click());
+fileIn.addEventListener('change', () => {
+  if (fileIn.files && fileIn.files.length) {
+    uploadFiles(fileIn.files);
+    fileIn.value = '';
+  }
+});
+document.addEventListener('dragover', e => { e.preventDefault(); });
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+    uploadFiles(e.dataTransfer.files);
+  }
 });
 
 qEl.addEventListener('input', () => {
@@ -693,6 +709,48 @@ function addError(msg) {
   bubble.textContent = msg;
   row.appendChild(bubble);
   msgs.appendChild(row); scroll();
+}
+
+function addSys(text, isError) {
+  const row = document.createElement('div');
+  row.className = 'sys-msg appear' + (isError ? ' error' : '');
+  row.textContent = text;
+  msgs.appendChild(row); scroll();
+}
+
+async function uploadFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  const key = document.getElementById('key').value;
+  if (!key) {
+    addSys('Paste your API key before uploading.', true);
+    return;
+  }
+  addSys('Indexing ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '…');
+  const body = new FormData();
+  files.forEach(f => body.append('files', f, f.name));
+  try {
+    const resp = await fetch('/ingest/upload', {
+      method: 'POST',
+      headers: {'x-api-key': key},
+      body,
+    });
+    if (resp.status === 401) {
+      addSys('Invalid API key.', true);
+      return;
+    }
+    if (!resp.ok) {
+      addSys('Upload failed (' + resp.status + ').', true);
+      return;
+    }
+    const data = await resp.json();
+    const ok = (data.files || []).filter(f => f.ok).map(f => f.filename);
+    const bad = (data.files || []).filter(f => !f.ok);
+    if (ok.length) addSys('Ready: ' + ok.join(', ') + '. Ask a question about them.');
+    bad.forEach(f => addSys((f.filename || 'file') + ': ' + (f.error || 'failed'), true));
+  } catch (err) {
+    addSys('Could not reach the server to upload.', true);
+  }
 }
 
 function addCitations(citations, bubble) {

@@ -1,8 +1,9 @@
 # What this is
 
 This app answers questions using **only files you give it**. It is not
-tied to a company, product, or support desk. Put your notes, docs, or
-exports in the `data/` folder, ingest them, then ask.
+tied to a company, product, or support desk. Upload `.md`, `.txt`, or
+`.html` from the chat page (they are indexed immediately), or put notes
+and exports in the `data/` folder and run ingest, then ask.
 
 ## What happens when you ask
 
@@ -15,5 +16,6 @@ exports in the `data/` folder, ingest them, then ask.
 ## What it is not
 
 It does not browse the web. It does not know your files until you
-ingest them. Changing a file on disk does nothing until you run ingest
-again (`POST /ingest/run` or `python -m scripts.bootstrap_index`).
+ingest them. UI uploads are indexed as soon as they succeed. Changing a
+file on disk does nothing until you run ingest again
+(`POST /ingest/run` or `python -m scripts.bootstrap_index`).

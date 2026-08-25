@@ -85,6 +85,36 @@
         }
       }
     },
+    "/ingest/upload": {
+      "post": {
+        "operationId": "ingestUpload",
+        "summary": "Upload and index documents",
+        "description": "Multipart field `files`. Accepts UTF-8 .md, .txt, .html, .htm. Indexed immediately. Requires x-api-key.",
+        "responses": {
+          "200": {
+            "description": "Per-file success or error."
+          },
+          "401": {
+            "description": "Invalid API key."
+          }
+        }
+      }
+    },
+    "/ingest/uploads": {
+      "get": {
+        "operationId": "listUploads",
+        "summary": "List uploaded documents",
+        "description": "Files saved under data/uploads/. Requires x-api-key.",
+        "responses": {
+          "200": {
+            "description": "Filename, size, and updated_at."
+          },
+          "401": {
+            "description": "Invalid API key."
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health",
