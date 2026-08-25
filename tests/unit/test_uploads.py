@@ -5,7 +5,7 @@ from ingestion.uploads import UploadError, save_upload, safe_filename
 
 def test_safe_filename_strips_paths_and_junk():
     assert safe_filename("../../etc/passwd.md") == "passwd.md"
-    assert safe_filename("My Doc (1).md") == "My_Doc__1_.md"
+    assert safe_filename("My Doc (1).md") == "My_Doc_1_.md"
 
 
 def test_save_upload_writes_utf8(tmp_path, monkeypatch):

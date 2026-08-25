@@ -28,6 +28,7 @@ from api.routes.ingest import router as ingest_router
 from ingestion.workers.webhook_handler import router as webhooks_router
 from ingestion.workers.poller import Poller
 from ingestion.sources import default_connectors
+from ingestion.pipeline import IngestionPipeline
 from ingestion.embedder import Embedder
 from retrieval.vector_store import VectorStore
 from retrieval.bm25_store import BM25Store
