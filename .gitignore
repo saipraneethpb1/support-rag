@@ -3,5 +3,7 @@
 __pycache__/
 *.pyc
 data/registry/
+data/uploads/*
+!data/uploads/.gitkeep
 evaluation/results/
 ask_docs.egg-info/

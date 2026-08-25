@@ -2,6 +2,11 @@
 
 All notable changes to this app are listed here.
 
+## [0.3.0] - 2026-08-25
+
+### Added
+- Upload `.md`, `.txt`, and `.html` from the chat UI (`POST /ingest/upload`)
+
 ## [0.2.0] - 2026-08-17
 
 ### Added

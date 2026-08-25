@@ -1,11 +1,15 @@
 # Add your own files
 
-Replace the example files under `data/` with yours, then ingest.
+Replace the example files under `data/` with yours, then ingest. You can
+also upload `.md`, `.txt`, or `.html` from the chat page (header button
+or drag-and-drop). Uploads are saved in `data/uploads/` and indexed
+immediately.
 
 ## Folders the app already watches
 
 | Path | What to put there |
 |------|-------------------|
+| `data/uploads/` | Files sent through the UI |
 | `data/sample_docs/` | Markdown (`.md`). Nested folders are fine. |
 | `data/sample_help_center/` | HTML articles (`.html`). |
 | `data/sample_tickets/tickets.jsonl` | One JSON object per line (id, subject, status, messages). |

@@ -17,8 +17,9 @@ DOCS = {
     "what-this-is.md": """# What this is
 
 This app answers questions using **only files you give it**. It is not
-tied to a company, product, or support desk. Put your notes, docs, or
-exports in the `data/` folder, ingest them, then ask.
+tied to a company, product, or support desk. Upload `.md`, `.txt`, or
+`.html` from the chat page (they are indexed immediately), or put notes
+and exports in the `data/` folder and run ingest, then ask.
 
 ## What happens when you ask
 
@@ -31,17 +32,22 @@ exports in the `data/` folder, ingest them, then ask.
 ## What it is not
 
 It does not browse the web. It does not know your files until you
-ingest them. Changing a file on disk does nothing until you run ingest
-again (`POST /ingest/run` or `python -m scripts.bootstrap_index`).
+ingest them. UI uploads are indexed as soon as they succeed. Changing a
+file on disk does nothing until you run ingest again
+(`POST /ingest/run` or `python -m scripts.bootstrap_index`).
 """,
     "add-your-files.md": """# Add your own files
 
-Replace the example files under `data/` with yours, then ingest.
+Replace the example files under `data/` with yours, then ingest. You can
+also upload `.md`, `.txt`, or `.html` from the chat page (header button
+or drag-and-drop). Uploads are saved in `data/uploads/` and indexed
+immediately.
 
 ## Folders the app already watches
 
 | Path | What to put there |
 |------|-------------------|
+| `data/uploads/` | Files sent through the UI |
 | `data/sample_docs/` | Markdown (`.md`). Nested folders are fine. |
 | `data/sample_help_center/` | HTML articles (`.html`). |
 | `data/sample_tickets/tickets.jsonl` | One JSON object per line (id, subject, status, messages). |
@@ -181,11 +187,12 @@ HELP_HTML = {
   <nav>Help</nav>
   <article>
     <h1>Add your own files</h1>
-    <p>Drop markdown into <code>data/sample_docs</code>, HTML into
-    <code>data/sample_help_center</code>, then run ingest. The app does
-    not read files until ingest runs.</p>
+    <p>Upload <code>.md</code>, <code>.txt</code>, or <code>.html</code>
+    from the chat page, or drop markdown into <code>data/sample_docs</code>
+    and HTML into <code>data/sample_help_center</code>, then ingest.</p>
     <h2>Ingest</h2>
-    <p>Use <code>python -m scripts.bootstrap_index</code> or
+    <p>UI uploads are indexed immediately. From the CLI use
+    <code>python -m scripts.bootstrap_index</code> or
     <code>POST /ingest/run</code> with your API key.</p>
     <p>Unchanged files are skipped. Deleted files drop out of the index
     on a full ingest pass.</p>
@@ -215,6 +222,11 @@ HELP_HTML = {
 CHANGELOG = """# Changelog
 
 All notable changes to this app are listed here.
+
+## [0.3.0] - 2026-08-25
+
+### Added
+- Upload `.md`, `.txt`, and `.html` from the chat UI (`POST /ingest/upload`)
 
 ## [0.2.0] - 2026-08-17
 
@@ -256,7 +268,7 @@ TICKETS = [
         "tags": ["ingest"],
         "messages": [
             {"author": "user", "body": "I copied a markdown file into data/sample_docs but chat still says it is not in the files.", "ts": "2026-08-12T14:22:00Z"},
-            {"author": "agent", "body": "Ingest is not automatic. Run python -m scripts.bootstrap_index or POST /ingest/run. Then ask again.", "ts": "2026-08-12T15:30:00Z"},
+            {"author": "agent", "body": "Files copied onto disk are not indexed until you ingest. Run python -m scripts.bootstrap_index or POST /ingest/run. Uploads from the chat page are indexed immediately.", "ts": "2026-08-12T15:30:00Z"},
             {"author": "user", "body": "Got it, ingest fixed it.", "ts": "2026-08-12T16:40:00Z"},
         ],
     },
@@ -329,6 +341,28 @@ OPENAPI = {
                 "description": "Full ingest pass. Unchanged files are skipped. Requires x-api-key.",
                 "responses": {
                     "200": {"description": "Counts of new, updated, unchanged, deleted."},
+                    "401": {"description": "Invalid API key."},
+                },
+            }
+        },
+        "/ingest/upload": {
+            "post": {
+                "operationId": "ingestUpload",
+                "summary": "Upload and index documents",
+                "description": "Multipart field `files`. Accepts UTF-8 .md, .txt, .html, .htm. Indexed immediately. Requires x-api-key.",
+                "responses": {
+                    "200": {"description": "Per-file success or error."},
+                    "401": {"description": "Invalid API key."},
+                },
+            }
+        },
+        "/ingest/uploads": {
+            "get": {
+                "operationId": "listUploads",
+                "summary": "List uploaded documents",
+                "description": "Files saved under data/uploads/. Requires x-api-key.",
+                "responses": {
+                    "200": {"description": "Filename, size, and updated_at."},
                     "401": {"description": "Invalid API key."},
                 },
             }

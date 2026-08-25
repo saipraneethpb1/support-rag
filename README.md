@@ -10,12 +10,12 @@ files explain how to use the app, and you replace them with yours.
 ## How to use it
 
 1. Start Qdrant + Redis, install, and set API keys (see Local setup).
-2. Keep or replace files under `data/` (see the table below).
-3. Index: `python -m scripts.bootstrap_index`
-4. Open http://localhost:8000, paste `API_KEY`, ask a question.
+2. Open http://localhost:8000, paste `API_KEY`, and **upload** `.md`, `.txt`, or `.html` (header button or drag-and-drop).
+3. Ask a question. You can still drop files under `data/` and run ingest from the CLI.
 
 | You have… | Put it here |
 |-----------|-------------|
+| Uploads from the UI | `data/uploads/` (written automatically) |
 | Markdown docs | `data/sample_docs/` |
 | HTML articles | `data/sample_help_center/` |
 | Resolved tickets (JSONL) | `data/sample_tickets/tickets.jsonl` |
@@ -27,7 +27,7 @@ Then ingest again. Unchanged files are skipped.
 ## What's in the box
 
 - **Hybrid retrieval**: vector (Qdrant + Gemini embeddings) + BM25, fused via RRF; optional cross-encoder rerank when `RERANKER_ENABLED=true` and `[local]` extras are installed
-- **Incremental ingestion**: content-hash diffing; webhooks; optional poller (`POLLER_ENABLED`); `POST /ingest/run`
+- **Upload**: `POST /ingest/upload` from the UI (`.md`, `.txt`, `.html`) or drop files on the page
 - **Connectors**: markdown, HTML, tickets (JSONL), changelog, OpenAPI
 - **Structure-aware chunking**: splits on headings, prepends title + heading path
 - **LLM router**: Groq primary → Gemini fallback, retries, circuit breaker
@@ -85,6 +85,8 @@ RERANKER_ENABLED=true   # requires [local] extras
 | POST   | `/chat`                      | API key | Blocking chat (uses semantic cache) |
 | POST   | `/chat/stream`               | API key | SSE streaming chat                  |
 | POST   | `/ingest/run`                | API key | Full ingest pass                    |
+| POST   | `/ingest/upload`             | API key | Upload and index documents          |
+| GET    | `/ingest/uploads`            | API key | List files uploaded via the UI      |
 | POST   | `/webhooks/tickets/resolved` | secret  | Single-ticket ingest on push        |
 | POST   | `/webhooks/docs/updated`     | secret  | Re-ingest on docs CI                |
 | GET    | `/docs`                      | none    | OpenAPI interactive docs            |

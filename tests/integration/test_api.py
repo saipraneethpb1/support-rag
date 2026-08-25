@@ -201,3 +201,49 @@ def test_ingest_happy_path(client):
     assert r.status_code == 200
     body = r.json()
     assert "new" in body and "chunks_written" in body
+
+
+def test_upload_requires_api_key(client):
+    r = client.post("/ingest/upload", files={"files": ("note.md", b"# Hello", "text/markdown")})
+    assert r.status_code == 401
+
+
+def test_upload_markdown_indexes_file(client, tmp_path, monkeypatch):
+    from ingestion import uploads as uploads_mod
+    monkeypatch.setattr(uploads_mod, "UPLOAD_DIR", tmp_path)
+    r = client.post(
+        "/ingest/upload",
+        headers={"x-api-key": "local-dev-key"},
+        files={"files": ("guide.md", b"# Onboarding\nWelcome to the team.", "text/markdown")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ingested"] == 1
+    assert body["files"][0]["ok"] is True
+    assert body["files"][0]["filename"] == "guide.md"
+    assert (tmp_path / "guide.md").read_text() == "# Onboarding\nWelcome to the team."
+
+
+def test_upload_rejects_unsupported_type(client, tmp_path, monkeypatch):
+    from ingestion import uploads as uploads_mod
+    monkeypatch.setattr(uploads_mod, "UPLOAD_DIR", tmp_path)
+    r = client.post(
+        "/ingest/upload",
+        headers={"x-api-key": "local-dev-key"},
+        files={"files": ("photo.png", b"not-an-image", "image/png")},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ingested"] == 0
+    assert body["files"][0]["ok"] is False
+
+
+def test_list_uploads(client, tmp_path, monkeypatch):
+    from ingestion import uploads as uploads_mod
+    monkeypatch.setattr(uploads_mod, "UPLOAD_DIR", tmp_path)
+    (tmp_path / "note.md").write_text("# Note\n", encoding="utf-8")
+    r = client.get("/ingest/uploads", headers={"x-api-key": "local-dev-key"})
+    assert r.status_code == 200
+    files = r.json()["files"]
+    assert files[0]["filename"] == "note.md"
+    assert files[0]["bytes"] > 0
