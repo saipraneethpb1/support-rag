@@ -11,9 +11,9 @@ class Settings(BaseSettings):
 
     # LLM
     groq_api_key: str = ""
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "openai/gpt-oss-120b"
     google_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.5-flash"
 
     # Vector store
     qdrant_url: str = "http://localhost:6333"

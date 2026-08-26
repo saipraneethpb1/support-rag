@@ -45,7 +45,13 @@ async def test_require_api_key_rejects_wrong_key(monkeypatch):
     assert ei.value.status_code == 401
 
 
-# ---------- BM25 source filter ----------
+def test_default_chat_models_are_current(monkeypatch):
+    from config.settings import Settings
+    monkeypatch.delenv("GROQ_MODEL", raising=False)
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    s = Settings(_env_file=None)
+    assert s.groq_model == "openai/gpt-oss-120b"
+    assert s.gemini_model == "gemini-3.5-flash"
 
 def test_bm25_respects_source_types_filter():
     store = BM25Store.__new__(BM25Store)
