@@ -196,7 +196,10 @@ def test_ingest_requires_api_key(client):
     assert r.status_code == 401
 
 
-def test_ingest_happy_path(client):
+def test_ingest_accepts_access_cookie(client):
+    client.cookies.set("ask_access", "local-dev-key")
+    r = client.post("/ingest/run")
+    assert r.status_code == 200
     r = client.post("/ingest/run", headers={"x-api-key": "local-dev-key"})
     assert r.status_code == 200
     body = r.json()

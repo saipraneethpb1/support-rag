@@ -9,8 +9,8 @@ files explain how to use the app, and you replace them with yours.
 
 ## How to use it
 
-1. Start Qdrant + Redis, install, and set API keys (see Local setup).
-2. Open http://localhost:8000, paste `API_KEY`, and **upload** `.md`, `.txt`, or `.html` (header button or drag-and-drop).
+1. Start Qdrant + Redis, install, and set provider keys (see Local setup).
+2. Open http://localhost:8000 and **upload** `.md`, `.txt`, or `.html` (composer + or drag-and-drop).
 3. Ask a question. You can still drop files under `data/` and run ingest from the CLI.
 
 | You have… | Put it here |
@@ -53,7 +53,7 @@ pip install -e ".[dev]"
 # 3. Configure
 cp .env.example .env
 # Set GROQ_API_KEY and GOOGLE_API_KEY (embeddings + Gemini fallback)
-# Set API_KEY to whatever you will paste in the UI
+# API_KEY is used for curl and webhooks; the chat UI does not ask visitors for it
 
 # 4. Example files + index
 python -m scripts.seed_demo_data
@@ -61,10 +61,10 @@ python -m scripts.bootstrap_index
 
 # 5. Run
 uvicorn api.main:app --reload
-# Open http://localhost:8000 and paste API_KEY
+# Open http://localhost:8000 — upload files and ask; no key field
 ```
 
-Try asking: “How do I add my own files?” or “Why did chat return 401?”
+Try asking: “How do I add my own files?” or “How do citations work?”
 
 Defaults use Gemini embeddings (`gemini-embedding-001`, dim 768). For local
 sentence-transformers instead:
@@ -82,11 +82,11 @@ RERANKER_ENABLED=true   # requires [local] extras
 |--------|------------------------------|---------|-------------------------------------|
 | GET    | `/`                          | none    | Chat UI                             |
 | GET    | `/health`                    | none    | Dependency health                   |
-| POST   | `/chat`                      | API key | Blocking chat (uses semantic cache) |
-| POST   | `/chat/stream`               | API key | SSE streaming chat                  |
-| POST   | `/ingest/run`                | API key | Full ingest pass                    |
-| POST   | `/ingest/upload`             | API key | Upload and index documents          |
-| GET    | `/ingest/uploads`            | API key | List files uploaded via the UI      |
+| POST   | `/chat`                      | cookie or API key | Blocking chat (uses semantic cache) |
+| POST   | `/chat/stream`               | cookie or API key | SSE streaming chat                  |
+| POST   | `/ingest/run`                | cookie or API key | Full ingest pass                    |
+| POST   | `/ingest/upload`             | cookie or API key | Upload and index documents          |
+| GET    | `/ingest/uploads`            | cookie or API key | List files uploaded via the UI      |
 | POST   | `/webhooks/tickets/resolved` | secret  | Single-ticket ingest on push        |
 | POST   | `/webhooks/docs/updated`     | secret  | Re-ingest on docs CI                |
 | GET    | `/docs`                      | none    | OpenAPI interactive docs            |

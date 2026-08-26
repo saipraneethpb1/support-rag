@@ -2,6 +2,11 @@
 
 All notable changes to this app are listed here.
 
+## [0.4.0] - 2026-08-26
+
+### Changed
+- Chat UI no longer asks visitors for an API key (cookie on GET /)
+
 ## [0.3.0] - 2026-08-25
 
 ### Added

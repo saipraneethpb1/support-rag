@@ -26,6 +26,15 @@ async def test_require_api_key_accepts_matching_key(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_require_api_key_accepts_cookie(monkeypatch):
+    from config import settings as settings_mod
+    settings_mod.get_settings.cache_clear()
+    monkeypatch.setenv("API_KEY", "secret-key")
+    settings_mod.get_settings.cache_clear()
+    await require_api_key(x_api_key=None, ask_access="secret-key")
+
+
+@pytest.mark.asyncio
 async def test_require_api_key_rejects_wrong_key(monkeypatch):
     from config import settings as settings_mod
     settings_mod.get_settings.cache_clear()

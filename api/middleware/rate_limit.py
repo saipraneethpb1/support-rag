@@ -72,6 +72,6 @@ _limiter = RateLimiter()
 
 
 async def rate_limit(request: Request) -> None:
-    # Prefer API key as the limit dimension; fall back to client IP
-    key = request.headers.get("x-api-key") or (request.client.host if request.client else "anon")
+    # Per visitor, not the shared demo key (the UI cookie is the same for everyone).
+    key = request.client.host if request.client else "anon"
     _limiter.check(key)
