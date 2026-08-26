@@ -10,6 +10,9 @@ from api.schemas import IngestResponse, UploadFileResult, UploadResponse
 from api.middleware.auth import require_api_key
 from api.middleware.rate_limit import rate_limit
 from ingestion.uploads import UploadError, list_uploads, save_upload
+from observability.logger import get_logger
+
+log = get_logger(__name__)
 
 router = APIRouter(prefix="/ingest", tags=["ingest"], dependencies=[Depends(require_api_key)])
 
@@ -58,6 +61,7 @@ async def upload_documents(
         except UploadError as e:
             results.append(UploadFileResult(filename=name, ok=False, error=str(e)))
         except Exception:
+            log.exception("upload_index_failed", filename=name)
             results.append(
                 UploadFileResult(filename=name, ok=False, error="Could not index this file.")
             )

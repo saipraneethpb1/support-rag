@@ -35,39 +35,48 @@ class VectorStore:
         self._client = AsyncQdrantClient(url=s.qdrant_url, api_key=s.qdrant_api_key or None)
         self._collection = s.qdrant_collection
         self._dim = s.embedding_dim
+        self.available = False
 
-    async def ensure_collection(self) -> None:
-        existing = await self._client.get_collections()
-        names = {c.name for c in existing.collections}
-        if self._collection in names:
-            info = await self._client.get_collection(self._collection)
-            # qdrant-client shapes vary slightly by version; be defensive
-            vectors = getattr(getattr(info, "config", None), "params", None)
-            vectors = getattr(vectors, "vectors", None)
-            size = getattr(vectors, "size", None)
-            if size is not None and int(size) != int(self._dim):
-                raise RuntimeError(
-                    f"Qdrant collection '{self._collection}' has dim={size}, "
-                    f"but EMBEDDING_DIM={self._dim}. Recreate the collection or "
-                    f"align EMBEDDING_DIM / embedding backend."
-                )
-            return
-        await self._client.create_collection(
-            collection_name=self._collection,
-            vectors_config=qm.VectorParams(size=self._dim, distance=qm.Distance.COSINE),
-        )
-        # Indexes for filterable metadata fields
-        for field in ("source_type", "doc_id", "url"):
-            await self._client.create_payload_index(
+    async def ensure_collection(self) -> bool:
+        try:
+            existing = await self._client.get_collections()
+            names = {c.name for c in existing.collections}
+            if self._collection in names:
+                info = await self._client.get_collection(self._collection)
+                # qdrant-client shapes vary slightly by version; be defensive
+                vectors = getattr(getattr(info, "config", None), "params", None)
+                vectors = getattr(vectors, "vectors", None)
+                size = getattr(vectors, "size", None)
+                if size is not None and int(size) != int(self._dim):
+                    raise RuntimeError(
+                        f"Qdrant collection '{self._collection}' has dim={size}, "
+                        f"but EMBEDDING_DIM={self._dim}. Recreate the collection or "
+                        f"align EMBEDDING_DIM / embedding backend."
+                    )
+                self.available = True
+                return True
+            await self._client.create_collection(
                 collection_name=self._collection,
-                field_name=field,
-                field_schema=qm.PayloadSchemaType.KEYWORD,
+                vectors_config=qm.VectorParams(size=self._dim, distance=qm.Distance.COSINE),
             )
-        log.info("qdrant_collection_created", name=self._collection, dim=self._dim)
+            # Indexes for filterable metadata fields
+            for field in ("source_type", "doc_id", "url"):
+                await self._client.create_payload_index(
+                    collection_name=self._collection,
+                    field_name=field,
+                    field_schema=qm.PayloadSchemaType.KEYWORD,
+                )
+            log.info("qdrant_collection_created", name=self._collection, dim=self._dim)
+            self.available = True
+            return True
+        except Exception as e:
+            self.available = False
+            log.warning("qdrant_unavailable", error=str(e))
+            return False
 
     async def upsert_chunks(self, chunks: list[Chunk], vectors: list[list[float]]) -> None:
         assert len(chunks) == len(vectors)
-        if not chunks:
+        if not chunks or not self.available:
             return
         points = [
             qm.PointStruct(
@@ -86,7 +95,7 @@ class VectorStore:
 
     async def delete_by_doc_ids(self, doc_ids: Iterable[str]) -> None:
         ids = list(doc_ids)
-        if not ids:
+        if not ids or not self.available:
             return
         await self._client.delete(
             collection_name=self._collection,
@@ -109,11 +118,18 @@ class VectorStore:
             flt = qm.Filter(
                 must=[qm.FieldCondition(key="source_type", match=qm.MatchAny(any=source_types))]
             )
-        results = await self._client.search(
-            collection_name=self._collection,
-            query_vector=vector,
-            limit=top_k,
-            query_filter=flt,
-            with_payload=True,
-        )
+        if not self.available:
+            return []
+        try:
+            results = await self._client.search(
+                collection_name=self._collection,
+                query_vector=vector,
+                limit=top_k,
+                query_filter=flt,
+                with_payload=True,
+            )
+        except Exception as e:
+            self.available = False
+            log.warning("qdrant_search_failed", error=str(e))
+            return []
         return [{"score": r.score, **(r.payload or {})} for r in results]
