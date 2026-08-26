@@ -12,8 +12,8 @@ Design:
   - Implements LLMAdapter from retrieval.query_transform, so the same
     router powers query rewrites, expansions, HyDE, AND final generation.
 
-Primary: Groq (Llama 3.3 70B) — blazing fast, free tier.
-Fallback: Google Gemini 2.0 Flash — free tier, different infra.
+Primary: Groq (openai/gpt-oss-120b) — fast, free tier.
+Fallback: Google Gemini 3.5 Flash — free tier, different infra.
 """
 from __future__ import annotations
 import asyncio
