@@ -74,6 +74,9 @@ include = [
 ]
 exclude = ["tests*", "data*"]
 
+[tool.setuptools.package-data]
+api = ["chat_ui.html"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
