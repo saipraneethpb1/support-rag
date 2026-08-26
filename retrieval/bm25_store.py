@@ -60,6 +60,22 @@ class BM25Store:
         self._bm25 = BM25Okapi(tokenized) if tokenized else None
         log.info("bm25_rebuilt", chunks=len(self._chunk_ids))
 
+    def replace_doc(self, doc_id: str, items: list[tuple[str, str, dict]]) -> None:
+        """Replace all chunks for one document and persist. Does not need Qdrant."""
+        kept: list[tuple[str, str, dict]] = []
+        for chunk_id, payload in zip(self._chunk_ids, self._payloads):
+            if payload.get("doc_id") == doc_id:
+                continue
+            kept.append((chunk_id, payload.get("text", ""), payload))
+        for chunk_id, text, payload in items:
+            p = dict(payload)
+            p.setdefault("text", text)
+            p.setdefault("chunk_id", chunk_id)
+            p.setdefault("doc_id", doc_id)
+            kept.append((chunk_id, text, p))
+        self.rebuild(kept)
+        self.save()
+
     def search(
         self,
         query: str,
@@ -77,12 +93,17 @@ class BM25Store:
         ranked = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
         out: list[dict] = []
         for i in ranked:
-            if scores[i] <= 0:
-                break
             payload = self._payloads[i]
             if allowed is not None and payload.get("source_type") not in allowed:
                 continue
-            out.append({"score": float(scores[i]), **payload})
+            score = float(scores[i])
+            # rank_bm25 IDF is non-positive on tiny corpora (one uploaded file).
+            if score <= 0:
+                hay_toks = set(_tokenize(payload.get("text") or ""))
+                if not any(t in hay_toks for t in toks):
+                    continue
+                score = 0.01
+            out.append({"score": score, **payload})
             if len(out) >= top_k:
                 break
         return out

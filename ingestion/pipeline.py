@@ -116,7 +116,11 @@ class IngestionPipeline:
         local = IngestStats()
         changed = await self._process_record(record, local)
         if changed:
-            await self._rebuild_bm25()
+            if self.vector_store.available:
+                try:
+                    await self._rebuild_bm25()
+                except Exception as e:
+                    log.warning("bm25_rebuild_from_qdrant_failed", error=str(e))
             await self._invalidate_semantic_cache()
         return changed
 
@@ -175,13 +179,38 @@ class IngestionPipeline:
             log.warning("empty_after_chunking", doc_id=record.doc_id)
             return False
 
-        vectors = await self.embedder.embed_documents([c.text for c in chunks])
+        vectors: list[list[float]] = []
+        try:
+            vectors = await self.embedder.embed_documents([c.text for c in chunks])
+        except Exception as e:
+            log.warning("embed_failed", doc_id=record.doc_id, error=str(e))
 
-        # Replace prior chunks for this doc_id (handles version-N -> version-N+1)
-        if existing:
-            await self.vector_store.delete_by_doc_ids([record.doc_id])
+        if self.vector_store.available and vectors and len(vectors) == len(chunks):
+            try:
+                if existing:
+                    await self.vector_store.delete_by_doc_ids([record.doc_id])
+                await self.vector_store.upsert_chunks(chunks, vectors)
+            except Exception as e:
+                log.warning("qdrant_upsert_failed", doc_id=record.doc_id, error=str(e))
+                self.vector_store.available = False
 
-        await self.vector_store.upsert_chunks(chunks, vectors)
+        self.bm25_store.replace_doc(
+            record.doc_id,
+            [
+                (
+                    c.chunk_id,
+                    c.text,
+                    {
+                        "chunk_id": c.chunk_id,
+                        "doc_id": c.doc_id,
+                        "text": c.text,
+                        **c.metadata,
+                    },
+                )
+                for c in chunks
+            ],
+        )
+
         await self.registry.upsert(
             doc_id=record.doc_id,
             source_type=record.source_type,
@@ -200,6 +229,8 @@ class IngestionPipeline:
 
     async def _rebuild_bm25(self) -> None:
         """Pull all payloads from Qdrant and rebuild the BM25 index."""
+        if not self.vector_store.available:
+            return
         client = self.vector_store._client  # ok: same package
         collection = self.vector_store._collection
 

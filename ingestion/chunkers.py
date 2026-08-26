@@ -150,7 +150,7 @@ def chunk_record(record: SourceRecord) -> list[Chunk]:
     raw_chunks: list[tuple[str, str]] = []  # (heading_path, text)
     for heading_path, section_text in sections:
         for piece in _split_oversized(section_text, settings.max_chunk_tokens):
-            if _approx_tokens(piece) >= 5:  # drop ultra-short fragments
+            if piece.strip():
                 raw_chunks.append((heading_path, piece))
 
     # Apply overlap on text only (heading path stays per-chunk)
