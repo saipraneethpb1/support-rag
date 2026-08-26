@@ -144,33 +144,8 @@
   .new-chat:hover { background: var(--bg-hover); }
   .new-chat svg { width: 1rem; height: 1rem; opacity: 0.8; }
 
-  .sb-key {
-    margin-top: auto;
-    padding: 0.7rem 0.8rem 0.85rem;
-    border-radius: 14px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-  }
-  .sb-key label {
-    display: block;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 0.4rem;
-  }
-  .sb-key input {
-    width: 100%;
-    border: 0;
-    outline: none;
-    background: transparent;
-    color: var(--ink);
-    font: inherit;
-    font-size: 0.85rem;
-  }
-  .sb-key input::placeholder { color: var(--muted); }
   .sb-foot {
+    margin-top: auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -556,10 +531,6 @@
       </svg>
       New chat
     </button>
-    <div class="sb-key">
-      <label for="key">API key</label>
-      <input id="key" type="password" value="" placeholder="Paste API_KEY" autocomplete="off" spellcheck="false">
-    </div>
     <div class="sb-foot">
       <span>Your files</span>
       <button class="icon-btn" id="theme-btn" type="button" title="Toggle theme" aria-label="Toggle theme">
@@ -592,7 +563,7 @@
             <h2>What can I help with?</h2>
             <div class="chips">
               <button class="chip" type="button" data-q="How do I add my own files?">How do I add my own files?<span>Upload or drop docs, then ingest</span></button>
-              <button class="chip" type="button" data-q="Why did chat return 401?">Why did chat return 401?<span>API key in the sidebar</span></button>
+              <button class="chip" type="button" data-q="Can I upload files from the chat page?">Can I upload files from the chat page?<span>Use + in the composer or drop them</span></button>
               <button class="chip" type="button" data-q="How do citations work?">How do citations work?<span>Answers point at ingested passages</span></button>
               <button class="chip" type="button" data-q="How do I run this locally?">How do I run this locally?<span>Keys, Qdrant, and ingest</span></button>
             </div>
@@ -632,16 +603,12 @@ const qEl   = document.getElementById('q');
 const send  = document.getElementById('send');
 const stage = document.getElementById('stage');
 const empty = document.getElementById('empty');
-const keyEl = document.getElementById('key');
 const sidebar = document.getElementById('sidebar');
 const titleEl = document.getElementById('chat-title');
 const fileIn = document.getElementById('file-in');
 
 let history = [];
 let busy = false;
-
-keyEl.value = sessionStorage.getItem('ask-api-key') || '';
-keyEl.addEventListener('input', () => sessionStorage.setItem('ask-api-key', keyEl.value));
 
 function setNav(open) {
   sidebar.classList.toggle('open', open);
@@ -806,22 +773,17 @@ function addSys(text, isError) {
 async function uploadFiles(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
-  const key = keyEl.value;
-  if (!key) {
-    addSys('Paste your API key in the sidebar before uploading.', true);
-    return;
-  }
   addSys('Indexing ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '…');
   const body = new FormData();
   files.forEach(f => body.append('files', f, f.name));
   try {
     const resp = await fetch('/ingest/upload', {
       method: 'POST',
-      headers: {'x-api-key': key},
+      credentials: 'same-origin',
       body,
     });
     if (resp.status === 401) {
-      addSys('Invalid API key.', true);
+      addSys('Could not authenticate. Refresh the page and try again.', true);
       return;
     }
     if (!resp.ok) {
@@ -871,11 +833,12 @@ form.addEventListener('submit', async e => {
   try {
     const resp = await fetch('/chat/stream', {
       method: 'POST',
-      headers: {'content-type': 'application/json', 'x-api-key': keyEl.value},
+      credentials: 'same-origin',
+      headers: {'content-type': 'application/json'},
       body: JSON.stringify({question, history}),
     });
     if (!resp.ok) {
-      addError(resp.status === 401 ? 'Invalid API key. Paste it in the sidebar.' : 'Request failed (' + resp.status + '). Try again.');
+      addError(resp.status === 401 ? 'Could not authenticate. Refresh the page and try again.' : 'Request failed (' + resp.status + '). Try again.');
       return;
     }
 

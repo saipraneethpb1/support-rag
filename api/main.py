@@ -23,6 +23,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
+from api.middleware.auth import attach_access_cookie
+
 from api.routes.health import router as health_router
 from api.routes.chat import router as chat_router
 from api.routes.ingest import router as ingest_router
@@ -178,4 +180,6 @@ _UI_HTML = (Path(__file__).resolve().parent / "chat_ui.html").read_text(encoding
 
 @app.get("/", response_class=HTMLResponse)
 async def index() -> HTMLResponse:
-    return HTMLResponse(_UI_HTML)
+    response = HTMLResponse(_UI_HTML)
+    attach_access_cookie(response)
+    return response

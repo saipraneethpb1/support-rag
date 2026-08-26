@@ -73,8 +73,8 @@ from the index on a full ingest pass.
 """,
     "ask-questions.md": """# Ask questions
 
-Open http://localhost:8000. Paste the same `API_KEY` you set in `.env`
-into the key field (it is empty on purpose). Type a question.
+Open http://localhost:8000. Upload a file or ask a question — the UI
+does not ask for a key.
 
 ## Chat API
 
@@ -92,8 +92,9 @@ Tokens arrive as `event: token`; citations arrive as a final `event: meta`.
 
 ## If you get 401
 
-The `x-api-key` header (or the UI field) must match `API_KEY` in `.env`.
-The demo UI does not pre-fill the key.
+The `x-api-key` header must match `API_KEY` in `.env`. The chat page
+does not ask for a key; opening it sets a cookie so upload and chat
+work in the browser.
 
 ## Optional filters
 
@@ -208,10 +209,10 @@ HELP_HTML = {
   <nav>Help</nav>
   <main class="article">
     <h1>API key</h1>
-    <p>Chat and ingest require the <code>x-api-key</code> header. Set
-    <code>API_KEY</code> in <code>.env</code>. The chat page has a key
-    field at the top; it starts empty.</p>
-    <p>A 401 means the key does not match. Webhooks use
+    <p>The chat page does not ask you for a key. Open it, upload files,
+    and ask. Programmatic calls still send <code>x-api-key</code>
+    matching <code>API_KEY</code> in <code>.env</code>.</p>
+    <p>A 401 on curl means the header does not match. Webhooks use
     <code>WEBHOOK_SECRET</code> if set, otherwise the same API key.</p>
   </main>
 </body>
@@ -222,6 +223,11 @@ HELP_HTML = {
 CHANGELOG = """# Changelog
 
 All notable changes to this app are listed here.
+
+## [0.4.0] - 2026-08-26
+
+### Changed
+- Chat UI no longer asks visitors for an API key (cookie on GET /)
 
 ## [0.3.0] - 2026-08-25
 
@@ -254,8 +260,8 @@ TICKETS = [
         "updated_at": "2026-08-10T11:05:00Z",
         "tags": ["auth"],
         "messages": [
-            {"author": "user", "body": "The UI says invalid API key when I send a question.", "ts": "2026-08-10T10:12:00Z"},
-            {"author": "agent", "body": "Paste the same value as API_KEY from your .env into the key field. The field is empty on purpose and is sent as the x-api-key header.", "ts": "2026-08-10T10:44:00Z"},
+            {"author": "user", "body": "curl to /chat returns 401 invalid API key.", "ts": "2026-08-10T10:12:00Z"},
+            {"author": "agent", "body": "The website does not ask for a key. For curl, send x-api-key matching API_KEY from .env. The chat UI sets that as a cookie when you open the page.", "ts": "2026-08-10T10:44:00Z"},
             {"author": "user", "body": "That worked.", "ts": "2026-08-10T11:05:00Z"},
         ],
     },

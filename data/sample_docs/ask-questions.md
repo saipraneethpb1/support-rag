@@ -1,7 +1,7 @@
 # Ask questions
 
-Open http://localhost:8000. Paste the same `API_KEY` you set in `.env`
-into the key field (it is empty on purpose). Type a question.
+Open http://localhost:8000. Upload a file or ask a question — the UI
+does not ask for a key.
 
 ## Chat API
 
@@ -19,8 +19,9 @@ Tokens arrive as `event: token`; citations arrive as a final `event: meta`.
 
 ## If you get 401
 
-The `x-api-key` header (or the UI field) must match `API_KEY` in `.env`.
-The demo UI does not pre-fill the key.
+The `x-api-key` header must match `API_KEY` in `.env`. The chat page
+does not ask for a key; opening it sets a cookie so upload and chat
+work in the browser.
 
 ## Optional filters
 

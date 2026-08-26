@@ -17,6 +17,7 @@
 {"query": "GET /health — does it need auth?", "relevant_doc_ids": ["openapi::health", "markdown_docs::run-locally.md"]}
 {"query": "What changed in 0.2.0?", "relevant_doc_ids": ["changelog::0.2.0"]}
 {"query": "What changed in 0.3.0?", "relevant_doc_ids": ["changelog::0.3.0"]}
+{"query": "What changed in 0.4.0?", "relevant_doc_ids": ["changelog::0.4.0"]}
 {"query": "How do I call POST /ingest/upload?", "relevant_doc_ids": ["openapi::ingestUpload", "markdown_docs::add-your-files.md"]}
 {"query": "When was hybrid retrieval added?", "relevant_doc_ids": ["changelog::0.1.0"]}
 {"query": "How do I call POST /ingest/run?", "relevant_doc_ids": ["openapi::ingestRun", "markdown_docs::add-your-files.md"]}

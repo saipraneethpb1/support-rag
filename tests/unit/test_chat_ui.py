@@ -9,3 +9,6 @@ def test_chat_ui_has_assistant_shell():
     assert "/chat/stream" in html
     assert "/ingest/upload" in html
     assert "JSON.stringify({question, history})" in html
+    assert "Paste API_KEY" not in html
+    assert 'id="key"' not in html
+    assert "credentials: 'same-origin'" in html
