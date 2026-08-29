@@ -12,3 +12,6 @@ def test_chat_ui_has_assistant_shell():
     assert "Paste API_KEY" not in html
     assert 'id="key"' not in html
     assert "credentials: 'same-origin'" in html
+    assert 'id="chat-list"' in html
+    assert "ask-chats-v1" in html
+    assert "startNewChat" in html

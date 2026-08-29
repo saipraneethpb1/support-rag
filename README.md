@@ -28,6 +28,7 @@ Then ingest again. Unchanged files are skipped.
 
 - **Hybrid retrieval**: vector (Qdrant + Gemini embeddings) + BM25, fused via RRF; optional cross-encoder rerank when `RERANKER_ENABLED=true` and `[local]` extras are installed
 - **Upload**: `POST /ingest/upload` from the UI (`.md`, `.txt`, `.html`) or drop files on the page
+- **Chats**: New chat plus a sidebar list of past threads, saved in your browser
 - **Connectors**: markdown, HTML, tickets (JSONL), changelog, OpenAPI
 - **Structure-aware chunking**: splits on headings, prepends title + heading path
 - **LLM router**: Groq primary → Gemini fallback, retries, circuit breaker
