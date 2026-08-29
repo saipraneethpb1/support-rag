@@ -1,7 +1,9 @@
 # Ask questions
 
 Open http://localhost:8000. Upload a file or ask a question — the UI
-does not ask for a key.
+does not ask for a key. **New chat** starts a blank thread. Past chats
+stay in the left sidebar on this browser (they are not stored on the
+server).
 
 ## Chat API
 
