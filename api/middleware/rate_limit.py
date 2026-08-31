@@ -13,6 +13,7 @@ import time
 from dataclasses import dataclass
 from fastapi import HTTPException, Request
 
+from core.session import COOKIE_NAME
 from observability.logger import get_logger
 
 log = get_logger(__name__)
@@ -72,6 +73,6 @@ _limiter = RateLimiter()
 
 
 async def rate_limit(request: Request) -> None:
-    # Per visitor, not the shared demo key (the UI cookie is the same for everyone).
-    key = request.client.host if request.client else "anon"
+    visitor = request.cookies.get(COOKIE_NAME) or (request.headers.get("X-Visitor-Id") or "").strip()
+    key = visitor or (request.client.host if request.client else "anon")
     _limiter.check(key)

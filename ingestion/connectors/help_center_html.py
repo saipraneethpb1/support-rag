@@ -17,14 +17,23 @@ from ingestion.connectors.base import BaseConnector, SourceRecord
 class HelpCenterHTMLConnector(BaseConnector):
     source_type = "help_center"
 
-    def __init__(self, root_dir: str | Path, base_url: str = "https://help.example.com"):
+    def __init__(
+        self,
+        root_dir: str | Path,
+        base_url: str = "https://help.example.com",
+        recursive: bool = True,
+    ):
         self.root = Path(root_dir).resolve()
         self.base_url = base_url.rstrip("/")
+        self.recursive = recursive
 
     async def list_records(self) -> AsyncIterator[SourceRecord]:
         if not self.root.exists():
             return
-        for path in sorted(self.root.rglob("*.html")):
+        globber = self.root.rglob if self.recursive else self.root.glob
+        for path in sorted(globber("*.html")):
+            if not path.is_file():
+                continue
             try:
                 raw = path.read_text(encoding="utf-8")
             except UnicodeDecodeError:

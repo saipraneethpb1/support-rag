@@ -134,6 +134,10 @@ pydantic-core==2.46.4
     # via pydantic
 pydantic-settings==2.15.0
     # via ask-docs (pyproject.toml)
+pypdf==6.16.2
+    # via ask-docs (pyproject.toml)
+python-docx==1.2.0
+    # via ask-docs (pyproject.toml)
 python-dotenv==1.2.2
     # via
     #   pydantic-settings

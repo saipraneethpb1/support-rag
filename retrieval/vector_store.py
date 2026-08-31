@@ -19,6 +19,7 @@ from qdrant_client.http import models as qm
 from config.settings import get_settings
 from ingestion.chunkers import Chunk
 from observability.logger import get_logger
+from retrieval.visibility import owner_visible
 
 log = get_logger(__name__)
 
@@ -60,7 +61,7 @@ class VectorStore:
                 vectors_config=qm.VectorParams(size=self._dim, distance=qm.Distance.COSINE),
             )
             # Indexes for filterable metadata fields
-            for field in ("source_type", "doc_id", "url"):
+            for field in ("source_type", "doc_id", "url", "owner"):
                 await self._client.create_payload_index(
                     collection_name=self._collection,
                     field_name=field,
@@ -112,6 +113,7 @@ class VectorStore:
         vector: list[float],
         top_k: int = 20,
         source_types: list[str] | None = None,
+        owner_id: str | None = None,
     ) -> list[dict]:
         flt = None
         if source_types:
@@ -120,11 +122,12 @@ class VectorStore:
             )
         if not self.available:
             return []
+        fetch_k = top_k * 4 if owner_id else top_k
         try:
             results = await self._client.search(
                 collection_name=self._collection,
                 query_vector=vector,
-                limit=top_k,
+                limit=fetch_k,
                 query_filter=flt,
                 with_payload=True,
             )
@@ -132,4 +135,5 @@ class VectorStore:
             self.available = False
             log.warning("qdrant_search_failed", error=str(e))
             return []
-        return [{"score": r.score, **(r.payload or {})} for r in results]
+        hits = [{"score": r.score, **(r.payload or {})} for r in results]
+        return [h for h in hits if owner_visible(h, owner_id)][:top_k]

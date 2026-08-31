@@ -25,10 +25,11 @@ def default_connectors(data: Path = DATA) -> list:
                 uploads,
                 base_url="uploaded://docs",
                 patterns=("*.md", "*.txt"),
+                recursive=False,
             )
         )
         connectors.append(
-            HelpCenterHTMLConnector(uploads, base_url="uploaded://html")
+            HelpCenterHTMLConnector(uploads, base_url="uploaded://html", recursive=False)
         )
     if (data / "sample_tickets" / "tickets.jsonl").exists():
         connectors.append(TicketsConnector(data / "sample_tickets" / "tickets.jsonl"))

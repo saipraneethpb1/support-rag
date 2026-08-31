@@ -11,7 +11,10 @@ Routes:
   POST /chat/stream    - SSE streaming chat (auth + rate-limited)
   POST /ingest/run     - force an ingest pass (auth)
   POST /ingest/upload  - upload documents and index them (auth)
-  GET  /ingest/uploads - list uploaded documents (auth)
+  GET  /ingest/uploads - list this visitor's uploaded documents
+  DELETE /ingest/uploads/{filename}
+  GET  /chats          - list this visitor's chats
+
   POST /webhooks/*     - source push handlers (shared-secret)
 """
 from __future__ import annotations
@@ -19,15 +22,18 @@ import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from api.middleware.auth import attach_access_cookie
-
+from api.middleware.visitor import attach_visitor_cookie, visitor_id_from
+from core.session import ANON_ID, new_visitor_id
 from api.routes.health import router as health_router
 from api.routes.chat import router as chat_router
+from api.routes.chats import router as chats_router
 from api.routes.ingest import router as ingest_router
+from core.chat_store import ChatStore
 from ingestion.workers.webhook_handler import router as webhooks_router
 from ingestion.workers.poller import Poller
 from ingestion.sources import default_connectors
@@ -116,6 +122,7 @@ async def lifespan(app: FastAPI):
     app.state.generator = generator
     app.state.ingestion_pipeline = pipeline
     app.state.semantic_cache = semantic_cache
+    app.state.chat_store = ChatStore("data/registry/chats.db")
     app.state.tracer = get_tracer()
 
     # Warm critical paths (collection exists, BM25 loaded)
@@ -163,12 +170,13 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_settings.cors_origin_list(),
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
 app.include_router(health_router)
 app.include_router(chat_router)
+app.include_router(chats_router)
 app.include_router(ingest_router)
 app.include_router(webhooks_router)
 
@@ -179,7 +187,11 @@ _UI_HTML = (Path(__file__).resolve().parent / "chat_ui.html").read_text(encoding
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index() -> HTMLResponse:
+async def index(request: Request) -> HTMLResponse:
+    vid = visitor_id_from(request)
+    if vid == ANON_ID:
+        vid = new_visitor_id()
     response = HTMLResponse(_UI_HTML)
     attach_access_cookie(response)
+    attach_visitor_cookie(response, vid)
     return response

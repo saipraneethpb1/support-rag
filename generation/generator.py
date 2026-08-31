@@ -79,6 +79,7 @@ class Generator:
         *,
         history: list[tuple[str, str]] | None = None,
         source_types: list[str] | None = None,
+        owner_id: str | None = None,
         use_cache: bool = True,
     ) -> GeneratedAnswer:
         trace_id = uuid.uuid4().hex[:12]
@@ -121,7 +122,11 @@ class Generator:
         # ---- Retrieval ----
         t0 = time.perf_counter()
         retrieval = await self.retriever.retrieve(
-            question, top_k=5, candidate_k=20, source_types=source_types
+            question,
+            top_k=5,
+            candidate_k=20,
+            source_types=source_types,
+            owner_id=owner_id,
         )
         timings["retrieval"] = (time.perf_counter() - t0) * 1000
 
@@ -193,6 +198,7 @@ class Generator:
         *,
         history: list[tuple[str, str]] | None = None,
         source_types: list[str] | None = None,
+        owner_id: str | None = None,
         use_cache: bool = True,
     ) -> AsyncIterator[StreamEvent]:
         """Stream tokens, then emit a final 'meta' event with citations.
@@ -236,7 +242,11 @@ class Generator:
         # Retrieval
         t0 = time.perf_counter()
         retrieval = await self.retriever.retrieve(
-            question, top_k=5, candidate_k=20, source_types=source_types
+            question,
+            top_k=5,
+            candidate_k=20,
+            source_types=source_types,
+            owner_id=owner_id,
         )
         timings["retrieval"] = (time.perf_counter() - t0) * 1000
 
@@ -293,6 +303,7 @@ class Generator:
                 "coverage": round(audit.sentence_coverage, 3),
                 "cache_hit": False,
                 "llm_provider": provider,
+                "empty_index": not retrieval.chunks,
                 "timings_ms": {k: round(v, 1) for k, v in timings.items()},
             },
         )

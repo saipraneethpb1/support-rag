@@ -67,6 +67,7 @@ class HybridSearcher:
         top_k_per_retriever: int = 20,
         final_k: int = 20,
         source_types: list[str] | None = None,
+        owner_id: str | None = None,
     ) -> list[Candidate]:
         """Return top `final_k` fused candidates."""
         self._ensure_bm25_loaded()
@@ -77,13 +78,15 @@ class HybridSearcher:
         # Vector search on the rewritten query
         tasks.append((
             "vec:primary",
-            asyncio.create_task(self._vector_search(tq.rewritten, top_k_per_retriever, source_types)),
+            asyncio.create_task(
+                self._vector_search(tq.rewritten, top_k_per_retriever, source_types, owner_id)
+            ),
         ))
         # BM25 on the rewritten query (same source_types filter as vector)
         tasks.append((
             "bm25:primary",
             asyncio.create_task(
-                self._bm25_search(tq.rewritten, top_k_per_retriever, source_types)
+                self._bm25_search(tq.rewritten, top_k_per_retriever, source_types, owner_id)
             ),
         ))
 
@@ -92,14 +95,18 @@ class HybridSearcher:
         for i, exp in enumerate(tq.expansions):
             tasks.append((
                 f"vec:exp{i}",
-                asyncio.create_task(self._vector_search(exp, top_k_per_retriever, source_types)),
+                asyncio.create_task(
+                    self._vector_search(exp, top_k_per_retriever, source_types, owner_id)
+                ),
             ))
 
         # HyDE: embed the hallucinated doc and run as another vector retriever
         if tq.hyde_doc:
             tasks.append((
                 "vec:hyde",
-                asyncio.create_task(self._vector_search_text(tq.hyde_doc, top_k_per_retriever, source_types)),
+                asyncio.create_task(
+                    self._vector_search_text(tq.hyde_doc, top_k_per_retriever, source_types, owner_id)
+                ),
             ))
 
         # Collect
@@ -115,24 +122,44 @@ class HybridSearcher:
         return fused[:final_k]
 
     async def _vector_search(
-        self, query_text: str, top_k: int, source_types: list[str] | None
+        self,
+        query_text: str,
+        top_k: int,
+        source_types: list[str] | None,
+        owner_id: str | None,
     ) -> list[dict]:
         vec = await self.embedder.embed_query(query_text)
-        return await self.vector_store.search(vec, top_k=top_k, source_types=source_types)
+        return await self.vector_store.search(
+            vec, top_k=top_k, source_types=source_types, owner_id=owner_id
+        )
 
     async def _vector_search_text(
-        self, doc_text: str, top_k: int, source_types: list[str] | None
+        self,
+        doc_text: str,
+        top_k: int,
+        source_types: list[str] | None,
+        owner_id: str | None,
     ) -> list[dict]:
         # HyDE: embed as document (no query prefix) rather than query
         vecs = await self.embedder.embed_documents([doc_text])
-        return await self.vector_store.search(vecs[0], top_k=top_k, source_types=source_types)
+        return await self.vector_store.search(
+            vecs[0], top_k=top_k, source_types=source_types, owner_id=owner_id
+        )
 
     async def _bm25_search(
-        self, query_text: str, top_k: int, source_types: list[str] | None
+        self,
+        query_text: str,
+        top_k: int,
+        source_types: list[str] | None,
+        owner_id: str | None,
     ) -> list[dict]:
         # BM25 is CPU-bound and fast; offload to thread to not block the loop
         return await asyncio.to_thread(
-            self.bm25_store.search, query_text, top_k, source_types=source_types
+            self.bm25_store.search,
+            query_text,
+            top_k,
+            source_types=source_types,
+            owner_id=owner_id,
         )
 
     def _rrf_fuse(self, results: dict[str, list[dict]]) -> list[Candidate]:

@@ -13,10 +13,10 @@ def test_save_upload_writes_utf8(tmp_path, monkeypatch):
 
     monkeypatch.setattr(uploads_mod, "UPLOAD_DIR", tmp_path)
     path, rec = save_upload("guide.md", b"# Onboarding\nHello")
-    assert path == tmp_path / "guide.md"
+    assert path == tmp_path / "anon" / "guide.md"
     assert rec.source_type == "markdown_docs"
     assert rec.title == "Onboarding"
-    assert rec.source_id == "guide.md"
+    assert rec.source_id == "anon/guide.md"
 
 
 def test_save_upload_rejects_binary_and_empty(tmp_path, monkeypatch):

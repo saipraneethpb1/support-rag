@@ -17,6 +17,7 @@ from fastapi.responses import StreamingResponse
 from api.schemas import ChatRequest, ChatResponse, CitationOut
 from api.middleware.auth import require_api_key
 from api.middleware.rate_limit import rate_limit
+from api.middleware.visitor import visitor_id_from
 from generation.generator import Generator
 from observability.logger import get_logger
 
@@ -43,6 +44,7 @@ async def chat(req: ChatRequest, request: Request) -> ChatResponse:
             req.question,
             history=req.history,
             source_types=req.source_types,
+            owner_id=visitor_id_from(request),
             use_cache=req.use_cache,
         )
     except Exception as e:
@@ -83,6 +85,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
                 req.question,
                 history=req.history,
                 source_types=req.source_types,
+                owner_id=visitor_id_from(request),
             ):
                 # SSE format: "data: <json>\n\n"
                 payload = json.dumps({"type": event.type, **event.data})

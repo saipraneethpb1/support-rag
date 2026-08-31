@@ -222,6 +222,86 @@
     color: var(--muted);
     font-size: 0.75rem;
   }
+  .file-list {
+    max-height: 8.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.78rem;
+    padding: 0.2rem 0.35rem;
+    border-radius: 8px;
+    color: var(--ink);
+  }
+  .file-item .fn {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-item .del {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    flex-shrink: 0;
+  }
+  .file-item:hover .del { opacity: 1; }
+  .file-item .del:hover { color: var(--danger); background: var(--danger-bg); }
+  .file-item .del svg { width: 0.8rem; height: 0.8rem; }
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    justify-content: center;
+    margin: 0 0 0.55rem;
+  }
+  .filters label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.18rem 0.5rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .filters input { accent-color: var(--ink); margin-right: 0.25rem; }
+  .top-actions {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+  }
+  .health-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: #22a06b;
+    margin-right: 0.25rem;
+  }
+  .health-dot.bad { background: #c43131; }
+  .health-dot.warn { background: #c98600; }
+  .send.stop {
+    background: var(--danger);
+    color: #fff;
+  }
 
   .main {
     flex: 1;
@@ -602,8 +682,10 @@
     </button>
     <div class="chat-list-label">Chats</div>
     <div class="chat-list" id="chat-list" aria-label="Your chats"></div>
+    <div class="chat-list-label">Your files</div>
+    <div class="file-list" id="file-list" aria-label="Uploaded files"></div>
     <div class="sb-foot">
-      <span>Your files</span>
+      <span>Local session</span>
       <button class="icon-btn" id="theme-btn" type="button" title="Toggle theme" aria-label="Toggle theme">
         <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
@@ -625,6 +707,19 @@
         </svg>
       </button>
       <h1 id="chat-title">New chat</h1>
+      <div class="top-actions">
+        <span class="health-dot" id="health-dot" title="Checking health"></span>
+        <button class="icon-btn" id="retry-btn" type="button" title="Retry last question" aria-label="Retry last question">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 4v6h6M20 20v-6h-6M5 19a9 9 0 0014-6 9 9 0 00-3-6M19 5a9 9 0 00-14 6 9 9 0 003 6"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="export-btn" type="button" title="Export chat" aria-label="Export chat">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div class="stage" id="stage">
@@ -644,8 +739,15 @@
       </div>
 
       <div class="composer-wrap">
+        <div class="filters col" id="filters" title="Limit retrieval to these source types">
+          <label><input type="checkbox" value="markdown_docs" checked> Docs</label>
+          <label><input type="checkbox" value="help_center" checked> HTML</label>
+          <label><input type="checkbox" value="tickets" checked> Tickets</label>
+          <label><input type="checkbox" value="changelog" checked> Changelog</label>
+          <label><input type="checkbox" value="openapi" checked> OpenAPI</label>
+        </div>
         <form id="f" class="col" autocomplete="off">
-          <input id="file-in" type="file" multiple accept=".md,.txt,.html,.htm,text/markdown,text/plain,text/html" hidden>
+          <input id="file-in" type="file" multiple accept=".md,.txt,.html,.htm,.pdf,.docx,text/markdown,text/plain,text/html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
           <button class="attach" id="upload-btn" type="button" title="Upload documents" aria-label="Upload documents">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 5v14M5 12h14"/>
@@ -658,7 +760,7 @@
             </svg>
           </button>
         </form>
-        <p class="hint">Answers cite the files you ingested. Drop .md, .txt, or .html anywhere to upload.</p>
+        <p class="hint">Answers cite ingested files. Upload .md, .txt, .html, .pdf, or .docx. Files stay in this browser session.</p>
       </div>
     </div>
   </div>
@@ -678,6 +780,8 @@ const sidebar = document.getElementById('sidebar');
 const titleEl = document.getElementById('chat-title');
 const fileIn = document.getElementById('file-in');
 const chatListEl = document.getElementById('chat-list');
+const fileListEl = document.getElementById('file-list');
+const healthDot = document.getElementById('health-dot');
 
 const CHATS_KEY = 'ask-chats-v1';
 const MAX_CHATS = 40;
@@ -685,35 +789,24 @@ const MAX_CHATS = 40;
 let store = { chats: [], activeId: null };
 let history = [];
 let busy = false;
+let abortCtl = null;
+let lastQuestion = '';
 
 function uid() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
-function loadStore() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(CHATS_KEY) || 'null');
-    if (raw && Array.isArray(raw.chats)) store = raw;
-  } catch (_) {}
-}
-function saveStore() {
-  try {
-    if (store.chats.length > MAX_CHATS) {
-      store.chats = store.chats
-        .slice()
-        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-        .slice(0, MAX_CHATS);
-    }
-    localStorage.setItem(CHATS_KEY, JSON.stringify(store));
-  } catch (_) {}
-}
-function activeChat() {
-  return store.chats.find(c => c.id === store.activeId) || null;
+function selectedSourceTypes() {
+  const boxes = [...document.querySelectorAll('#filters input[type=checkbox]')];
+  const on = boxes.filter(b => b.checked).map(b => b.value);
+  if (!on.length || on.length === boxes.length) return null;
+  return on;
 }
 function apiHistory(messages) {
   const pairs = [];
   (messages || []).forEach(m => {
-    if (m.role === 'user' || m.role === 'assistant') pairs.push([m.role, m.text]);
+    const text = m.text || m.content || '';
+    if (m.role === 'user' || m.role === 'assistant') pairs.push([m.role, text]);
   });
   return pairs.slice(-20);
 }
@@ -722,29 +815,56 @@ function clipTitle(text) {
   if (!t) return 'New chat';
   return t.length > 42 ? t.slice(0, 42) + '…' : t;
 }
-function ensureActiveChat(title) {
-  let chat = activeChat();
-  if (chat) {
-    if (title && (chat.title === 'New chat' || !chat.title)) chat.title = clipTitle(title);
-    chat.updatedAt = Date.now();
-    return chat;
-  }
-  chat = { id: uid(), title: clipTitle(title), updatedAt: Date.now(), messages: [] };
-  store.chats.unshift(chat);
-  store.activeId = chat.id;
-  return chat;
+function activeChat() {
+  return store.chats.find(c => c.id === store.activeId) || null;
+}
+function toApiMessages(messages) {
+  return (messages || []).map(m => ({
+    role: m.role,
+    content: m.text || m.content || '',
+    citations: m.citations || [],
+    error: m.error ? String(m.error) : (m.role === 'error' ? (m.text || m.content) : null),
+  }));
+}
+function fromApiMessages(messages) {
+  return (messages || []).map(m => ({
+    role: m.role,
+    text: m.content || m.text || '',
+    citations: m.citations || [],
+    error: m.error,
+  }));
+}
+async function api(path, opts) {
+  const resp = await fetch(path, { credentials: 'same-origin', ...opts });
+  return resp;
+}
+async function persistRemote() {
+  const chat = activeChat();
+  if (!chat || !chat.id) return;
+  try {
+    await api('/chats/' + encodeURIComponent(chat.id), {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: chat.title, messages: toApiMessages(chat.messages) }),
+    });
+  } catch (_) {}
 }
 function persistMessage(msg) {
-  const chat = ensureActiveChat(msg.role === 'user' ? msg.text : undefined);
+  const chat = activeChat();
+  if (!chat) return;
+  if (msg.role === 'user' && (chat.title === 'New chat' || !chat.title)) {
+    chat.title = clipTitle(msg.text);
+    titleEl.textContent = chat.title;
+  }
   chat.messages.push(msg);
   chat.updatedAt = Date.now();
-  saveStore();
   renderChatList();
+  persistRemote();
 }
 function renderChatList() {
   const chats = store.chats
-    .filter(c => c.messages && c.messages.length)
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    .slice()
+    .sort((a, b) => String(b.updated_at || b.updatedAt || '').localeCompare(String(a.updated_at || a.updatedAt || '')));
   chatListEl.innerHTML = '';
   if (!chats.length) {
     const p = document.createElement('div');
@@ -796,37 +916,51 @@ function replayMessages(messages) {
     else addSys(m.text, !!m.error, false);
   });
 }
-function openChat(id) {
+async function openChat(id) {
   if (busy) return;
-  const chat = store.chats.find(c => c.id === id);
-  if (!chat) return;
-  store.activeId = id;
-  saveStore();
-  history = apiHistory(chat.messages);
-  if (!chat.messages.length) showEmptyThread();
-  else {
-    empty.classList.add('hidden');
-    stage.classList.add('has-thread');
-    titleEl.textContent = chat.title || 'New chat';
-    replayMessages(chat.messages);
-    scroll();
-  }
-  renderChatList();
-  setNav(false);
-  qEl.focus();
-}
-function startNewChat() {
-  if (busy) return;
-  const current = activeChat();
-  if (current && !current.messages.length) {
-    showEmptyThread();
+  try {
+    const resp = await api('/chats/' + encodeURIComponent(id));
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const chat = {
+      id: data.id,
+      title: data.title,
+      updated_at: data.updated_at,
+      messages: fromApiMessages(data.messages),
+    };
+    const idx = store.chats.findIndex(c => c.id === id);
+    if (idx >= 0) store.chats[idx] = chat;
+    else store.chats.unshift(chat);
+    store.activeId = id;
+    history = apiHistory(chat.messages);
+    if (!chat.messages.length) showEmptyThread();
+    else {
+      empty.classList.add('hidden');
+      stage.classList.add('has-thread');
+      titleEl.textContent = chat.title || 'New chat';
+      replayMessages(chat.messages);
+      scroll();
+    }
     renderChatList();
     setNav(false);
     qEl.focus();
-    return;
+  } catch (_) {}
+}
+async function startNewChat() {
+  if (busy) return;
+  try {
+    const resp = await api('/chats/', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: 'New chat' }),
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    store.chats.unshift({ id: data.id, title: data.title, updated_at: data.updated_at, messages: [] });
+    store.activeId = data.id;
+  } catch (_) {
+    store.activeId = null;
   }
-  store.activeId = null;
-  saveStore();
   showEmptyThread();
   renderChatList();
   setNav(false);
@@ -835,14 +969,29 @@ function startNewChat() {
   syncSend();
   qEl.focus();
 }
-function deleteChat(id) {
+async function deleteChat(id) {
+  try {
+    await api('/chats/' + encodeURIComponent(id), { method: 'DELETE' });
+  } catch (_) {}
   store.chats = store.chats.filter(c => c.id !== id);
   if (store.activeId === id) {
     store.activeId = null;
     showEmptyThread();
   }
-  saveStore();
   renderChatList();
+}
+async function ensureActiveChat() {
+  if (activeChat()) return activeChat();
+  const resp = await api('/chats/', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'New chat' }),
+  });
+  const data = await resp.json();
+  const chat = { id: data.id, title: data.title, updated_at: data.updated_at, messages: [] };
+  store.chats.unshift(chat);
+  store.activeId = chat.id;
+  return chat;
 }
 
 function setNav(open) {
@@ -859,7 +1008,9 @@ document.getElementById('theme-btn').addEventListener('click', () => {
 });
 
 function syncSend() {
-  send.disabled = busy || !qEl.value.trim();
+  send.disabled = busy ? false : !qEl.value.trim();
+  send.classList.toggle('stop', busy);
+  send.setAttribute('aria-label', busy ? 'Stop' : 'Send');
 }
 qEl.addEventListener('input', () => {
   qEl.style.height = 'auto';
@@ -904,6 +1055,27 @@ document.querySelectorAll('.chip').forEach(btn => {
 });
 
 document.getElementById('new-chat').addEventListener('click', startNewChat);
+document.getElementById('retry-btn').addEventListener('click', () => {
+  if (busy || !lastQuestion) return;
+  qEl.value = lastQuestion;
+  qEl.dispatchEvent(new Event('input'));
+  form.requestSubmit();
+});
+document.getElementById('export-btn').addEventListener('click', () => {
+  const chat = activeChat();
+  const lines = ['# ' + (chat && chat.title ? chat.title : 'Chat'), ''];
+  (chat && chat.messages || []).forEach(m => {
+    lines.push('## ' + m.role);
+    lines.push(m.text || '');
+    lines.push('');
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (chat && chat.title ? chat.title : 'chat').replace(/[^\w.-]+/g, '_') + '.md';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
 
 function enterThread(title) {
   empty.classList.add('hidden');
@@ -1012,6 +1184,42 @@ function addSys(text, isError, persist) {
   if (persist !== false) persistMessage({ role: 'sys', text, error: !!isError });
 }
 
+async function refreshFiles() {
+  try {
+    const resp = await api('/ingest/uploads');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const files = data.files || [];
+    fileListEl.innerHTML = '';
+    if (!files.length) {
+      const p = document.createElement('div');
+      p.className = 'chat-empty';
+      p.textContent = 'No uploads yet.';
+      fileListEl.appendChild(p);
+      return;
+    }
+    files.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'file-item';
+      const name = document.createElement('span');
+      name.className = 'fn';
+      name.textContent = f.filename;
+      const del = document.createElement('button');
+      del.className = 'del';
+      del.type = 'button';
+      del.title = 'Delete file';
+      del.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18"/></svg>';
+      del.addEventListener('click', async () => {
+        await api('/ingest/uploads/' + encodeURIComponent(f.filename), { method: 'DELETE' });
+        refreshFiles();
+      });
+      row.appendChild(name);
+      row.appendChild(del);
+      fileListEl.appendChild(row);
+    });
+  } catch (_) {}
+}
+
 async function uploadFiles(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
@@ -1037,6 +1245,7 @@ async function uploadFiles(fileList) {
     const bad = (data.files || []).filter(f => !f.ok);
     if (ok.length) addSys('Ready: ' + ok.join(', ') + '. Ask a question about them.');
     bad.forEach(f => addSys((f.filename || 'file') + ': ' + (f.error || 'failed'), true));
+    refreshFiles();
   } catch (err) {
     addSys('Could not reach the server to upload.', true);
   }
@@ -1060,24 +1269,33 @@ function addCitations(citations, bubble) {
 
 form.addEventListener('submit', async e => {
   e.preventDefault();
+  if (busy) {
+    if (abortCtl) abortCtl.abort();
+    return;
+  }
   const question = qEl.value.trim();
-  if (!question || busy) return;
+  if (!question) return;
   qEl.value = '';
   qEl.style.height = 'auto';
+  lastQuestion = question;
   busy = true;
   syncSend();
+  abortCtl = new AbortController();
 
+  try { await ensureActiveChat(); } catch (_) {}
   addUser(question);
   addTyping();
 
   let tokens = [], prose, bubble, botCreated = false, lastCitations = [];
+  const source_types = selectedSourceTypes();
 
   try {
     const resp = await fetch('/chat/stream', {
       method: 'POST',
       credentials: 'same-origin',
       headers: {'content-type': 'application/json'},
-      body: JSON.stringify({question, history}),
+      body: JSON.stringify({question, history, source_types}),
+      signal: abortCtl.signal,
     });
     if (!resp.ok) {
       addError(resp.status === 401 ? 'Could not authenticate. Refresh the page and try again.' : 'Request failed (' + resp.status + '). Try again.');
@@ -1109,6 +1327,7 @@ form.addEventListener('submit', async e => {
           if (prose) prose.classList.remove('streaming');
           lastCitations = payload.citations || [];
           addCitations(lastCitations, bubble);
+          if (payload.empty_index) addSys('No matching passages yet. Upload a file or ingest the sample corpus.');
           scroll();
         } else if (payload.type === 'error') {
           addError(payload.message || 'Unknown error');
@@ -1123,21 +1342,73 @@ form.addEventListener('submit', async e => {
       persistMessage({ role: 'assistant', text: tokens.join(''), citations: lastCitations });
     }
   } catch (err) {
-    addError('Connection error — is the server running?');
+    if (err && err.name === 'AbortError') {
+      removeTyping();
+      addSys('Stopped.');
+    } else {
+      addError('Connection error — is the server running?');
+    }
   } finally {
     busy = false;
+    abortCtl = null;
     syncSend();
     qEl.focus();
   }
 });
 
-loadStore();
-renderChatList();
-if (store.activeId && store.chats.some(c => c.id === store.activeId && c.messages && c.messages.length)) {
-  openChat(store.activeId);
-} else {
-  renderChatList();
+async function pollHealth() {
+  try {
+    const resp = await fetch('/health');
+    const data = await resp.json();
+    healthDot.classList.toggle('bad', !data.providers || !data.providers.length);
+    healthDot.classList.toggle('warn', data.status === 'degraded' && data.providers && data.providers.length);
+    healthDot.title = 'Health: ' + data.status + (data.qdrant ? ' · Qdrant' : ' · BM25 only');
+  } catch (_) {
+    healthDot.classList.add('bad');
+    healthDot.title = 'Health: unreachable';
+  }
 }
+
+async function migrateLocalChats() {
+  let local = null;
+  try { local = JSON.parse(localStorage.getItem(CHATS_KEY) || 'null'); } catch (_) {}
+  if (!local || !Array.isArray(local.chats) || !local.chats.length) return;
+  for (const c of local.chats.slice(0, MAX_CHATS)) {
+    if (!c.messages || !c.messages.length) continue;
+    try {
+      const created = await api('/chats/', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title: c.title || 'New chat' }),
+      });
+      if (!created.ok) continue;
+      const data = await created.json();
+      await api('/chats/' + encodeURIComponent(data.id), {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ title: c.title, messages: toApiMessages(c.messages) }),
+      });
+    } catch (_) {}
+  }
+  try { localStorage.removeItem(CHATS_KEY); } catch (_) {}
+}
+
+async function boot() {
+  await migrateLocalChats();
+  try {
+    const resp = await api('/chats/');
+    if (resp.ok) {
+      const data = await resp.json();
+      store.chats = (data.chats || []).map(c => ({ ...c, messages: c.messages || [] }));
+    }
+  } catch (_) {}
+  renderChatList();
+  refreshFiles();
+  pollHealth();
+  setInterval(pollHealth, 30000);
+}
+
+boot();
 </script>
 </body>
 </html>
