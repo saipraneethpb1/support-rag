@@ -22,6 +22,7 @@ COPY pyproject.toml requirements.lock.txt README.md ./
 COPY api ./api
 COPY cache ./cache
 COPY config ./config
+COPY core ./core
 COPY generation ./generation
 COPY ingestion ./ingestion
 COPY observability ./observability

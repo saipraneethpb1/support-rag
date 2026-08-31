@@ -10,12 +10,12 @@ files explain how to use the app, and you replace them with yours.
 ## How to use it
 
 1. Start Qdrant + Redis, install, and set provider keys (see Local setup).
-2. Open http://localhost:8000 and **upload** `.md`, `.txt`, or `.html` (composer + or drag-and-drop).
+2. Open http://localhost:8000 and **upload** `.md`, `.txt`, `.html`, `.pdf`, or `.docx` (composer + or drag-and-drop). Uploads are scoped to your browser session so two visitors can use the same filename.
 3. Ask a question. You can still drop files under `data/` and run ingest from the CLI.
 
 | You have… | Put it here |
 |-----------|-------------|
-| Uploads from the UI | `data/uploads/` (written automatically) |
+| Uploads from the UI | `data/uploads/<session>/` (written automatically; ephemeral on Render unless you add a disk) |
 | Markdown docs | `data/sample_docs/` |
 | HTML articles | `data/sample_help_center/` |
 | Resolved tickets (JSONL) | `data/sample_tickets/tickets.jsonl` |
@@ -27,8 +27,8 @@ Then ingest again. Unchanged files are skipped.
 ## What's in the box
 
 - **Hybrid retrieval**: vector (Qdrant + Gemini embeddings) + BM25, fused via RRF; optional cross-encoder rerank when `RERANKER_ENABLED=true` and `[local]` extras are installed
-- **Upload**: `POST /ingest/upload` from the UI (`.md`, `.txt`, `.html`) or drop files on the page
-- **Chats**: New chat plus a sidebar list of past threads, saved in your browser
+- **Upload**: `POST /ingest/upload` from the UI (`.md`, `.txt`, `.html`, `.pdf`, `.docx`) or drop files on the page. Each visitor gets an isolated folder and retrieval only sees shared corpus plus their own files.
+- **Chats**: New chat plus a sidebar list of past threads, stored on the server for that visitor (SQLite). Older browser-only history is migrated once.
 - **Connectors**: markdown, HTML, tickets (JSONL), changelog, OpenAPI
 - **Structure-aware chunking**: splits on headings, prepends title + heading path
 - **LLM router**: Groq primary → Gemini fallback, retries, circuit breaker
@@ -86,8 +86,15 @@ RERANKER_ENABLED=true   # requires [local] extras
 | POST   | `/chat`                      | cookie or API key | Blocking chat (uses semantic cache) |
 | POST   | `/chat/stream`               | cookie or API key | SSE streaming chat                  |
 | POST   | `/ingest/run`                | cookie or API key | Full ingest pass                    |
+| GET    | `/chats/`                    | cookie or API key | List this visitor's chats           |
+| POST   | `/chats/`                    | cookie or API key | Create a chat                       |
+| GET    | `/chats/{id}`                | cookie or API key | Load a chat                         |
+| PUT    | `/chats/{id}`                | cookie or API key | Save messages                       |
+| DELETE | `/chats/{id}`                | cookie or API key | Delete a chat                       |
 | POST   | `/ingest/upload`             | cookie or API key | Upload and index documents          |
-| GET    | `/ingest/uploads`            | cookie or API key | List files uploaded via the UI      |
+| GET    | `/ingest/uploads`            | cookie or API key | List this visitor's uploads         |
+| DELETE | `/ingest/uploads/{filename}` | cookie or API key | Delete an uploaded file             |
+| GET    | `/ingest/status`             | cookie or API key | Indexed document count              |
 | POST   | `/webhooks/tickets/resolved` | secret  | Single-ticket ingest on push        |
 | POST   | `/webhooks/docs/updated`     | secret  | Re-ingest on docs CI                |
 | GET    | `/docs`                      | none    | OpenAPI interactive docs            |

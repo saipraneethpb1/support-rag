@@ -179,6 +179,10 @@ class IngestionPipeline:
             log.warning("empty_after_chunking", doc_id=record.doc_id)
             return False
 
+        owner = record.extra_metadata.get("owner") or "shared"
+        for chunk in chunks:
+            chunk.metadata["owner"] = owner
+
         vectors: list[list[float]] = []
         try:
             vectors = await self.embedder.embed_documents([c.text for c in chunks])
@@ -252,3 +256,15 @@ class IngestionPipeline:
 
         self.bm25_store.rebuild(items)
         self.bm25_store.save()
+
+    async def delete_doc(self, doc_id: str) -> None:
+        """Remove one document from Qdrant, BM25, and the registry."""
+        await self.registry.init()
+        await self.vector_store.delete_by_doc_ids([doc_id])
+        self.bm25_store.replace_doc(doc_id, [])
+        await self.registry.delete([doc_id])
+        await self._invalidate_semantic_cache()
+
+    async def document_count(self) -> int:
+        await self.registry.init()
+        return await self.registry.count()

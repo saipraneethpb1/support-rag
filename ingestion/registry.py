@@ -16,7 +16,7 @@ import os
 from datetime import datetime, timezone
 from typing import Iterable
 
-from sqlalchemy import String, DateTime, Integer, select, delete
+from sqlalchemy import String, DateTime, Integer, func, select, delete
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -107,13 +107,23 @@ class Registry:
                 existing.last_seen_at = datetime.now(timezone.utc)
                 await s.commit()
 
+    async def count(self) -> int:
+        async with self._sessionmaker() as s:
+            result = await s.execute(select(func.count()).select_from(DocRecord))
+            return int(result.scalar_one())
+
     async def stale_doc_ids(self, source_type: str, run_started_at: datetime) -> list[str]:
-        """Docs of this source whose last_seen_at predates this ingest run -> deleted at source."""
+        """Docs of this source whose last_seen_at predates this ingest run -> deleted at source.
+
+        UI uploads use uploaded:// URLs and live outside connector scans (per-visitor
+        folders). Do not treat them as stale when sample_docs / top-level uploads run.
+        """
         async with self._sessionmaker() as s:
             result = await s.execute(
                 select(DocRecord.doc_id).where(
                     DocRecord.source_type == source_type,
                     DocRecord.last_seen_at < run_started_at,
+                    DocRecord.url.notlike("uploaded://%"),
                 )
             )
             return [row[0] for row in result.all()]

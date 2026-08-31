@@ -72,6 +72,7 @@ class Retriever:
         top_k: int = 5,
         candidate_k: int = 20,
         source_types: list[str] | None = None,
+        owner_id: str | None = None,
     ) -> RetrievalResult:
         timings: dict[str, float] = {}
 
@@ -85,6 +86,7 @@ class Retriever:
             top_k_per_retriever=candidate_k,
             final_k=candidate_k,
             source_types=source_types,
+            owner_id=owner_id,
         )
         timings["hybrid_search"] = (time.perf_counter() - t0) * 1000
         candidate_count = len(candidates)

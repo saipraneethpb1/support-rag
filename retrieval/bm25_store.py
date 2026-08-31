@@ -16,6 +16,7 @@ from typing import Iterable
 from rank_bm25 import BM25Okapi
 
 from observability.logger import get_logger
+from retrieval.visibility import owner_visible
 
 log = get_logger(__name__)
 
@@ -82,6 +83,7 @@ class BM25Store:
         top_k: int = 20,
         *,
         source_types: list[str] | None = None,
+        owner_id: str | None = None,
     ) -> list[dict]:
         if not self._bm25:
             return []
@@ -95,6 +97,8 @@ class BM25Store:
         for i in ranked:
             payload = self._payloads[i]
             if allowed is not None and payload.get("source_type") not in allowed:
+                continue
+            if not owner_visible(payload, owner_id):
                 continue
             score = float(scores[i])
             # rank_bm25 IDF is non-positive on tiny corpora (one uploaded file).

@@ -20,18 +20,23 @@ class MarkdownDocsConnector(BaseConnector):
         root_dir: str | Path,
         base_url: str = "https://docs.example.com",
         patterns: tuple[str, ...] = ("*.md",),
+        recursive: bool = True,
     ):
         self.root = Path(root_dir).resolve()
         self.base_url = base_url.rstrip("/")
         self.patterns = patterns
+        self.recursive = recursive
 
     async def list_records(self) -> AsyncIterator[SourceRecord]:
         if not self.root.exists():
             return
         seen: set[Path] = set()
         paths: list[Path] = []
+        globber = self.root.rglob if self.recursive else self.root.glob
         for pattern in self.patterns:
-            for path in self.root.rglob(pattern):
+            for path in globber(pattern):
+                if not path.is_file():
+                    continue
                 if path in seen:
                     continue
                 seen.add(path)
