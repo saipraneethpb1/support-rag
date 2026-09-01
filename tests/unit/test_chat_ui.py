@@ -15,6 +15,7 @@ def test_chat_ui_has_assistant_shell():
     assert 'id="chat-list"' in html
     assert "ask-chats-v1" in html
     assert "startNewChat" in html
+    assert "await persistRemote()" in html
     assert "/chats/" in html
     assert "AbortController" in html
     assert 'id="file-list"' in html
