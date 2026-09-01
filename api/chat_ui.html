@@ -918,6 +918,7 @@ function replayMessages(messages) {
 }
 async function openChat(id) {
   if (busy) return;
+  await persistRemote();
   try {
     const resp = await api('/chats/' + encodeURIComponent(id));
     if (!resp.ok) return;
@@ -948,6 +949,15 @@ async function openChat(id) {
 }
 async function startNewChat() {
   if (busy) return;
+  await persistRemote();
+  const current = activeChat();
+  if (current && (!current.messages || !current.messages.length)) {
+    showEmptyThread();
+    renderChatList();
+    setNav(false);
+    qEl.focus();
+    return;
+  }
   try {
     const resp = await api('/chats/', {
       method: 'POST',
