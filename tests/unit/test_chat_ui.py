@@ -23,3 +23,7 @@ def test_chat_ui_has_assistant_shell():
     assert 'id="status-bar"' in html
     assert "copy-btn" in html
     assert ".pdf" in html
+    assert 'id="theme-light"' in html
+    assert 'id="theme-dark"' in html
+    assert "Whole library" in html
+    assert 'type="checkbox"' not in html

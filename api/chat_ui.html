@@ -218,12 +218,7 @@
 
   .sb-foot {
     margin-top: auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.15rem 0.2rem;
-    color: var(--muted);
-    font-size: 0.75rem;
+    padding: 0.15rem 0.1rem 0.2rem;
   }
   .file-list {
     max-height: 8.5rem;
@@ -266,23 +261,87 @@
   .file-item:hover .del { opacity: 1; }
   .file-item .del:hover { color: var(--danger); background: var(--danger-bg); }
   .file-item .del svg { width: 0.8rem; height: 0.8rem; }
-  .filters {
+  .source-block { display: flex; flex-direction: column; gap: 0.35rem; }
+  .source-trigger {
+    appearance: none;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 0.45rem 0.55rem;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    justify-content: center;
-    margin: 0 0 0.55rem;
-  }
-  .filters label {
-    font-size: 0.7rem;
-    color: var(--muted);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 0.18rem 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font: inherit;
+    font-size: 0.82rem;
     cursor: pointer;
-    user-select: none;
+    text-align: left;
   }
-  .filters input { accent-color: var(--ink); margin-right: 0.25rem; }
+  .source-trigger:hover { background: var(--bg-hover); }
+  .source-trigger small {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  #source-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .source-panel {
+    display: none;
+    flex-direction: column;
+    padding: 0.15rem 0.2rem 0.35rem;
+  }
+  .source-panel.open { display: flex; }
+  .source-panel button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 0.38rem 0.55rem;
+    font: inherit;
+    font-size: 0.84rem;
+    text-align: left;
+    cursor: pointer;
+  }
+  .source-panel button[aria-pressed="true"] {
+    color: var(--ink);
+    background: var(--bg);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .source-panel button:hover { color: var(--ink); }
+  .theme-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.2rem;
+    padding: 0.2rem;
+    border-radius: 12px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+  }
+  .theme-switch button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 9px;
+    padding: 0.38rem 0.4rem;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .theme-switch button[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--bg);
+  }
   .top-actions {
     position: absolute;
     right: 0.5rem;
@@ -729,20 +788,26 @@
     </button>
     <div class="chat-list-label">Chats</div>
     <div class="chat-list" id="chat-list" aria-label="Your chats"></div>
+    <div class="source-block">
+      <button class="source-trigger" id="source-trigger" type="button" aria-expanded="false" aria-controls="filters">
+        <span id="source-label">Whole library</span>
+        <small>Sources</small>
+      </button>
+      <div class="source-panel" id="filters" role="group" aria-label="Sources included in answers">
+        <button type="button" data-source="markdown_docs" aria-pressed="true">Documents</button>
+        <button type="button" data-source="help_center" aria-pressed="true">Articles</button>
+        <button type="button" data-source="tickets" aria-pressed="true">Tickets</button>
+        <button type="button" data-source="changelog" aria-pressed="true">Changelog</button>
+        <button type="button" data-source="openapi" aria-pressed="true">API spec</button>
+      </div>
+    </div>
     <div class="chat-list-label">Your files</div>
     <div class="file-list" id="file-list" aria-label="Uploaded files"></div>
     <div class="sb-foot">
-      <span>Local session</span>
-      <button class="icon-btn" id="theme-btn" type="button" title="Toggle theme" aria-label="Toggle theme">
-        <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-        </svg>
-        <svg class="icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>
-        </svg>
-      </button>
+      <div class="theme-switch" id="theme-btn" role="group" aria-label="Appearance">
+        <button type="button" id="theme-light" data-theme="light" aria-pressed="true">Light</button>
+        <button type="button" id="theme-dark" data-theme="dark" aria-pressed="false">Dark</button>
+      </div>
     </div>
   </aside>
 
@@ -789,13 +854,6 @@
       </div>
 
       <div class="composer-wrap">
-        <div class="filters col" id="filters" title="Limit retrieval to these source types">
-          <label><input type="checkbox" value="markdown_docs" checked> Docs</label>
-          <label><input type="checkbox" value="help_center" checked> HTML</label>
-          <label><input type="checkbox" value="tickets" checked> Tickets</label>
-          <label><input type="checkbox" value="changelog" checked> Changelog</label>
-          <label><input type="checkbox" value="openapi" checked> OpenAPI</label>
-        </div>
         <form id="f" class="col" autocomplete="off">
           <input id="file-in" type="file" multiple accept=".md,.txt,.html,.htm,.pdf,.docx,text/markdown,text/plain,text/html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
           <button class="attach" id="upload-btn" type="button" title="Upload documents" aria-label="Upload documents">
@@ -846,11 +904,31 @@ function uid() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
+function sourceButtons() {
+  return [...document.querySelectorAll('#filters [data-source]')];
+}
+function syncSourceLabel() {
+  const buttons = sourceButtons();
+  const on = buttons.filter(b => b.getAttribute('aria-pressed') === 'true');
+  const label = document.getElementById('source-label');
+  if (!label) return;
+  if (!on.length || on.length === buttons.length) label.textContent = 'Whole library';
+  else label.textContent = on.map(b => b.textContent.trim()).join(', ');
+}
 function selectedSourceTypes() {
-  const boxes = [...document.querySelectorAll('#filters input[type=checkbox]')];
-  const on = boxes.filter(b => b.checked).map(b => b.value);
-  if (!on.length || on.length === boxes.length) return null;
+  const buttons = sourceButtons();
+  const on = buttons.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.dataset.source);
+  if (!on.length || on.length === buttons.length) return null;
   return on;
+}
+function applyTheme(mode) {
+  const dark = mode === 'dark';
+  document.documentElement.classList.toggle('dark', dark);
+  localStorage.setItem('ask-theme', dark ? 'dark' : 'light');
+  const lightBtn = document.getElementById('theme-light');
+  const darkBtn = document.getElementById('theme-dark');
+  if (lightBtn) lightBtn.setAttribute('aria-pressed', dark ? 'false' : 'true');
+  if (darkBtn) darkBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
 }
 function apiHistory(messages) {
   const pairs = [];
@@ -1087,10 +1165,24 @@ document.getElementById('menu-btn').addEventListener('click', () => setNav(true)
 document.getElementById('sidebar-close').addEventListener('click', () => setNav(false));
 document.getElementById('scrim').addEventListener('click', () => setNav(false));
 
-document.getElementById('theme-btn').addEventListener('click', () => {
-  const isDark = document.documentElement.classList.toggle('dark');
-  localStorage.setItem('ask-theme', isDark ? 'dark' : 'light');
+document.getElementById('source-trigger').addEventListener('click', () => {
+  const panel = document.getElementById('filters');
+  const open = panel.classList.toggle('open');
+  document.getElementById('source-trigger').setAttribute('aria-expanded', open ? 'true' : 'false');
 });
+sourceButtons().forEach(btn => {
+  btn.addEventListener('click', () => {
+    const on = sourceButtons().filter(b => b.getAttribute('aria-pressed') === 'true');
+    const pressed = btn.getAttribute('aria-pressed') === 'true';
+    if (pressed && on.length === 1) return;
+    btn.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+    syncSourceLabel();
+  });
+});
+document.querySelectorAll('#theme-btn [data-theme]').forEach(btn => {
+  btn.addEventListener('click', () => applyTheme(btn.getAttribute('data-theme')));
+});
+applyTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
 
 function syncSend() {
   send.disabled = busy ? false : !qEl.value.trim();
