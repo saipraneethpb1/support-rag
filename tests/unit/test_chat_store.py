@@ -1,6 +1,15 @@
 from core.chat_store import ChatStore
 
 
+def test_chat_store_uses_wal(tmp_path):
+    store = ChatStore(tmp_path / "chats.db")
+    with store._connect() as conn:
+        mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
+        timeout = conn.execute("PRAGMA busy_timeout").fetchone()[0]
+    assert str(mode).lower() == "wal"
+    assert int(timeout) >= 5000
+
+
 def test_chat_store_keeps_threads_independent(tmp_path):
     store = ChatStore(tmp_path / "chats.db")
     a = store.create_chat("v1", title="New chat")

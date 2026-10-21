@@ -16,45 +16,48 @@
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #ffffff;
-    --bg-sidebar: #f9f9f9;
-    --bg-hover: #ececec;
-    --bg-user: #f4f4f4;
-    --ink: #0d0d0d;
-    --muted: #8e8e8e;
-    --line: rgba(0, 0, 0, 0.08);
-    --composer: #ffffff;
-    --composer-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.06);
-    --send: #0d0d0d;
-    --send-ink: #ffffff;
-    --danger: #c43131;
-    --danger-bg: #fdecec;
-    --chip: #ffffff;
-    --overlay: rgba(255,255,255,.72);
-    --radius: 28px;
-    --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --bg: #f4f0e8;
+    --bg-sidebar: #ebe4d8;
+    --bg-hover: #e2d8c8;
+    --bg-user: #fffdf8;
+    --ink: #1b1712;
+    --muted: #6d6458;
+    --line: rgba(27, 23, 18, 0.12);
+    --composer: #fffdf8;
+    --composer-shadow: 0 0 0 1px rgba(27,23,18,.1), 0 16px 40px rgba(70, 48, 22, .08);
+    --send: #1b1712;
+    --send-ink: #f4f0e8;
+    --accent: #8c4e24;
+    --danger: #9d2c2c;
+    --danger-bg: #f8e6e2;
+    --chip: #fffdf8;
+    --overlay: rgba(244,240,232,.78);
+    --radius: 22px;
+    --font: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+    --display: "Fraunces", Georgia, serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    --sidebar-w: 260px;
+    --sidebar-w: 280px;
   }
   .dark {
-    --bg: #212121;
-    --bg-sidebar: #171717;
-    --bg-hover: #2f2f2f;
-    --bg-user: #303030;
-    --ink: #ececec;
-    --muted: #afafaf;
-    --line: rgba(255, 255, 255, 0.1);
-    --composer: #2f2f2f;
-    --composer-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 8px 28px rgba(0,0,0,.35);
-    --send: #ececec;
-    --send-ink: #0d0d0d;
-    --danger: #ff8a8a;
-    --danger-bg: rgba(196, 49, 49, 0.22);
-    --chip: #2f2f2f;
-    --overlay: rgba(33,33,33,.78);
+    --bg: #12110f;
+    --bg-sidebar: #1a1815;
+    --bg-hover: #2a2621;
+    --bg-user: #221f1b;
+    --ink: #f6f1e8;
+    --muted: #b2a89c;
+    --line: rgba(246, 241, 232, 0.12);
+    --composer: #1c1a17;
+    --composer-shadow: 0 0 0 1px rgba(246,241,232,.1), 0 16px 40px rgba(0,0,0,.4);
+    --send: #f6f1e8;
+    --send-ink: #12110f;
+    --accent: #e0b07a;
+    --danger: #ffb4a8;
+    --danger-bg: rgba(157, 44, 44, 0.28);
+    --chip: #1c1a17;
+    --overlay: rgba(18,17,15,.78);
   }
 
   * { box-sizing: border-box; }
@@ -375,12 +378,56 @@
     padding: 1rem 0 1.75rem;
   }
   .empty.hidden { display: none; }
-  .empty h2 {
-    margin: 0 0 1.35rem;
-    font-size: clamp(1.7rem, 3vw, 2.05rem);
-    font-weight: 600;
-    letter-spacing: -0.04em;
+  .kicker {
+    margin: 0 0 0.55rem;
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
   }
+  .empty h2 {
+    margin: 0 0 0.45rem;
+    font-family: var(--display);
+    font-size: clamp(2.1rem, 4vw, 2.8rem);
+    font-weight: 520;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+  .empty .lede {
+    margin: 0 auto 1.4rem;
+    max-width: 34rem;
+    color: var(--muted);
+    font-size: 1.02rem;
+    line-height: 1.5;
+  }
+  .status-bar {
+    margin: 0 auto 0.65rem;
+    width: min(768px, calc(100% - 2.5rem));
+    border: 1px solid var(--line);
+    background: var(--chip);
+    color: var(--ink);
+    border-radius: 12px;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+  .status-bar.warn { border-color: #c98600; }
+  .status-bar.bad { color: var(--danger); background: var(--danger-bg); }
+  .msg-actions { margin-top: 0.7rem; }
+  .copy-btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+    font: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+  }
+  .copy-btn:hover { color: var(--ink); background: var(--bg-hover); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .chips {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -722,16 +769,19 @@
       </div>
     </div>
 
+    <div id="status-bar" class="status-bar" hidden></div>
     <div class="stage" id="stage">
       <div id="log">
         <div class="col">
           <div class="empty" id="empty">
+            <p class="kicker">Your library</p>
             <h2>What can I help with?</h2>
+            <p class="lede">Answers stay tied to the files in this session. Citations show the passage, and a new chat keeps the last one saved.</p>
             <div class="chips">
-              <button class="chip" type="button" data-q="How do I add my own files?">How do I add my own files?<span>Upload or drop docs, then ingest</span></button>
-              <button class="chip" type="button" data-q="Can I upload files from the chat page?">Can I upload files from the chat page?<span>Use + in the composer or drop them</span></button>
-              <button class="chip" type="button" data-q="How do citations work?">How do citations work?<span>Answers point at ingested passages</span></button>
-              <button class="chip" type="button" data-q="How do I run this locally?">How do I run this locally?<span>Keys, Qdrant, and ingest</span></button>
+              <button class="chip" type="button" data-q="Summarize the files I uploaded.">Summarize my files<span>A short brief of what is indexed</span></button>
+              <button class="chip" type="button" data-q="Which passage supports this answer?">Show the source<span>Citations point at the passage used</span></button>
+              <button class="chip" type="button" data-q="What is missing from my documents?">Find the gaps<span>Questions the files do not answer</span></button>
+              <button class="chip" type="button" data-q="How do I add my own files?">Add a document<span>.md, .txt, .html, .pdf, or .docx</span></button>
             </div>
           </div>
           <div id="msgs"></div>
@@ -760,7 +810,7 @@
             </svg>
           </button>
         </form>
-        <p class="hint">Answers cite ingested files. Upload .md, .txt, .html, .pdf, or .docx. Files stay in this browser session.</p>
+        <p class="hint">Cited answers only. Drop .md, .txt, .html, .pdf, or .docx. This browser keeps its own files and chats.</p>
       </div>
     </div>
   </div>
@@ -838,16 +888,41 @@ async function api(path, opts) {
   const resp = await fetch(path, { credentials: 'same-origin', ...opts });
   return resp;
 }
+function setStatus(text, kind, owner) {
+  const bar = document.getElementById('status-bar');
+  if (!bar) return;
+  if (!text) {
+    if (owner && bar.dataset.owner && bar.dataset.owner !== owner) return;
+    bar.hidden = true;
+    bar.textContent = '';
+    bar.className = 'status-bar';
+    bar.dataset.owner = '';
+    return;
+  }
+  bar.hidden = false;
+  bar.dataset.owner = owner || '';
+  bar.className = 'status-bar' + (kind ? ' ' + kind : '');
+  bar.textContent = text;
+}
 async function persistRemote() {
   const chat = activeChat();
-  if (!chat || !chat.id) return;
-  try {
-    await api('/chats/' + encodeURIComponent(chat.id), {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: chat.title, messages: toApiMessages(chat.messages) }),
-    });
-  } catch (_) {}
+  if (!chat || !chat.id) return true;
+  const body = JSON.stringify({ title: chat.title, messages: toApiMessages(chat.messages) });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const resp = await api('/chats/' + encodeURIComponent(chat.id), {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body,
+      });
+      if (resp.ok) {
+        setStatus('', '', 'save');
+        return true;
+      }
+    } catch (_) {}
+  }
+  setStatus('This chat is still on screen, but it could not be saved. Stay on this thread and send again.', 'bad', 'save');
+  return false;
 }
 function persistMessage(msg) {
   const chat = activeChat();
@@ -1159,6 +1234,26 @@ function addBot() {
   return { prose, bubble };
 }
 
+function attachCopy(bubble, text) {
+  if (!bubble || bubble.querySelector('.copy-btn')) return;
+  const row = document.createElement('div');
+  row.className = 'msg-actions';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+    } catch (_) {
+      btn.textContent = 'Copy failed';
+    }
+  });
+  row.appendChild(btn);
+  bubble.appendChild(row);
+}
 function addBotMessage(text, citations, persist) {
   enterThread();
   const row = document.createElement('div');
@@ -1170,6 +1265,7 @@ function addBotMessage(text, citations, persist) {
   prose.innerHTML = renderMarkdown(text);
   bubble.appendChild(prose);
   addCitations(citations, bubble);
+  attachCopy(bubble, text);
   row.appendChild(avatar());
   row.appendChild(bubble);
   msgs.appendChild(row);
@@ -1233,6 +1329,14 @@ async function refreshFiles() {
 async function uploadFiles(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
+  const allowed = /\.(md|txt|html|htm|pdf|docx)$/i;
+  const tooBig = files.filter(f => f.size > 5 * 1024 * 1024);
+  const badType = files.filter(f => !allowed.test(f.name || ''));
+  if (tooBig.length || badType.length) {
+    if (badType.length) addSys('Use .md, .txt, .html, .pdf, or .docx.', true);
+    if (tooBig.length) addSys('Each file must be 5 MB or smaller.', true);
+    return;
+  }
   addSys('Indexing ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '…');
   const body = new FormData();
   files.forEach(f => body.append('files', f, f.name));
@@ -1349,14 +1453,21 @@ form.addEventListener('submit', async e => {
       history.push(['user', question]);
       history.push(['assistant', tokens.join('')]);
       if (history.length > 20) history = history.slice(-20);
+      attachCopy(bubble, tokens.join(''));
       persistMessage({ role: 'assistant', text: tokens.join(''), citations: lastCitations });
     }
   } catch (err) {
+    if (tokens.length && bubble) {
+      attachCopy(bubble, tokens.join(''));
+      persistMessage({ role: 'assistant', text: tokens.join(''), citations: lastCitations });
+    }
     if (err && err.name === 'AbortError') {
       removeTyping();
-      addSys('Stopped.');
+      addSys(tokens.length ? 'Stopped. The partial answer was kept.' : 'Stopped.');
     } else {
-      addError('Connection error — is the server running?');
+      addError(tokens.length
+        ? 'The connection dropped. The partial answer was kept — use Retry to ask again.'
+        : 'Connection error — is the server running?');
     }
   } finally {
     busy = false;
@@ -1370,12 +1481,17 @@ async function pollHealth() {
   try {
     const resp = await fetch('/health');
     const data = await resp.json();
-    healthDot.classList.toggle('bad', !data.providers || !data.providers.length);
-    healthDot.classList.toggle('warn', data.status === 'degraded' && data.providers && data.providers.length);
-    healthDot.title = 'Health: ' + data.status + (data.qdrant ? ' · Qdrant' : ' · BM25 only');
+    const noModels = !data.providers || !data.providers.length;
+    healthDot.classList.toggle('bad', noModels);
+    healthDot.classList.toggle('warn', data.status === 'degraded' && !noModels);
+    healthDot.title = 'Health: ' + data.status + (data.qdrant ? ' · Qdrant' : ' · keyword search');
+    if (noModels) setStatus('No answer model is configured. Answers cannot be generated until a provider key is set.', 'bad', 'health');
+    else if (!data.qdrant) setStatus('Vector search is offline. Answers still use keyword search over the files on this server.', 'warn', 'health');
+    else setStatus('', '', 'health');
   } catch (_) {
     healthDot.classList.add('bad');
     healthDot.title = 'Health: unreachable';
+    setStatus('The server did not answer a health check. You can retry in a moment.', 'bad', 'health');
   }
 }
 
@@ -1405,13 +1521,18 @@ async function migrateLocalChats() {
 
 async function boot() {
   await migrateLocalChats();
-  try {
-    const resp = await api('/chats/');
-    if (resp.ok) {
-      const data = await resp.json();
-      store.chats = (data.chats || []).map(c => ({ ...c, messages: c.messages || [] }));
-    }
-  } catch (_) {}
+  let loaded = false;
+  for (let attempt = 0; attempt < 2 && !loaded; attempt++) {
+    try {
+      const resp = await api('/chats/');
+      if (resp.ok) {
+        const data = await resp.json();
+        store.chats = (data.chats || []).map(c => ({ ...c, messages: c.messages || [] }));
+        loaded = true;
+      }
+    } catch (_) {}
+  }
+  if (!loaded) setStatus('Saved chats could not be loaded. New messages will try again.', 'warn', 'boot');
   renderChatList();
   refreshFiles();
   pollHealth();
