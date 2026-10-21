@@ -16,45 +16,48 @@
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #ffffff;
-    --bg-sidebar: #f9f9f9;
-    --bg-hover: #ececec;
-    --bg-user: #f4f4f4;
-    --ink: #0d0d0d;
-    --muted: #8e8e8e;
-    --line: rgba(0, 0, 0, 0.08);
-    --composer: #ffffff;
-    --composer-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 8px 24px rgba(0,0,0,.06);
-    --send: #0d0d0d;
-    --send-ink: #ffffff;
-    --danger: #c43131;
-    --danger-bg: #fdecec;
-    --chip: #ffffff;
-    --overlay: rgba(255,255,255,.72);
-    --radius: 28px;
-    --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --bg: #f4f0e8;
+    --bg-sidebar: #ebe4d8;
+    --bg-hover: #e2d8c8;
+    --bg-user: #fffdf8;
+    --ink: #1b1712;
+    --muted: #6d6458;
+    --line: rgba(27, 23, 18, 0.12);
+    --composer: #fffdf8;
+    --composer-shadow: 0 0 0 1px rgba(27,23,18,.1), 0 16px 40px rgba(70, 48, 22, .08);
+    --send: #1b1712;
+    --send-ink: #f4f0e8;
+    --accent: #8c4e24;
+    --danger: #9d2c2c;
+    --danger-bg: #f8e6e2;
+    --chip: #fffdf8;
+    --overlay: rgba(244,240,232,.78);
+    --radius: 22px;
+    --font: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+    --display: "Fraunces", Georgia, serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    --sidebar-w: 260px;
+    --sidebar-w: 280px;
   }
   .dark {
-    --bg: #212121;
-    --bg-sidebar: #171717;
-    --bg-hover: #2f2f2f;
-    --bg-user: #303030;
-    --ink: #ececec;
-    --muted: #afafaf;
-    --line: rgba(255, 255, 255, 0.1);
-    --composer: #2f2f2f;
-    --composer-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 8px 28px rgba(0,0,0,.35);
-    --send: #ececec;
-    --send-ink: #0d0d0d;
-    --danger: #ff8a8a;
-    --danger-bg: rgba(196, 49, 49, 0.22);
-    --chip: #2f2f2f;
-    --overlay: rgba(33,33,33,.78);
+    --bg: #12110f;
+    --bg-sidebar: #1a1815;
+    --bg-hover: #2a2621;
+    --bg-user: #221f1b;
+    --ink: #f6f1e8;
+    --muted: #b2a89c;
+    --line: rgba(246, 241, 232, 0.12);
+    --composer: #1c1a17;
+    --composer-shadow: 0 0 0 1px rgba(246,241,232,.1), 0 16px 40px rgba(0,0,0,.4);
+    --send: #f6f1e8;
+    --send-ink: #12110f;
+    --accent: #e0b07a;
+    --danger: #ffb4a8;
+    --danger-bg: rgba(157, 44, 44, 0.28);
+    --chip: #1c1a17;
+    --overlay: rgba(18,17,15,.78);
   }
 
   * { box-sizing: border-box; }
@@ -215,12 +218,7 @@
 
   .sb-foot {
     margin-top: auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.15rem 0.2rem;
-    color: var(--muted);
-    font-size: 0.75rem;
+    padding: 0.15rem 0.1rem 0.2rem;
   }
   .file-list {
     max-height: 8.5rem;
@@ -263,23 +261,87 @@
   .file-item:hover .del { opacity: 1; }
   .file-item .del:hover { color: var(--danger); background: var(--danger-bg); }
   .file-item .del svg { width: 0.8rem; height: 0.8rem; }
-  .filters {
+  .source-block { display: flex; flex-direction: column; gap: 0.35rem; }
+  .source-trigger {
+    appearance: none;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 0.45rem 0.55rem;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    justify-content: center;
-    margin: 0 0 0.55rem;
-  }
-  .filters label {
-    font-size: 0.7rem;
-    color: var(--muted);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 0.18rem 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font: inherit;
+    font-size: 0.82rem;
     cursor: pointer;
-    user-select: none;
+    text-align: left;
   }
-  .filters input { accent-color: var(--ink); margin-right: 0.25rem; }
+  .source-trigger:hover { background: var(--bg-hover); }
+  .source-trigger small {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  #source-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .source-panel {
+    display: none;
+    flex-direction: column;
+    padding: 0.15rem 0.2rem 0.35rem;
+  }
+  .source-panel.open { display: flex; }
+  .source-panel button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 0.38rem 0.55rem;
+    font: inherit;
+    font-size: 0.84rem;
+    text-align: left;
+    cursor: pointer;
+  }
+  .source-panel button[aria-pressed="true"] {
+    color: var(--ink);
+    background: var(--bg);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .source-panel button:hover { color: var(--ink); }
+  .theme-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.2rem;
+    padding: 0.2rem;
+    border-radius: 12px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+  }
+  .theme-switch button {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 9px;
+    padding: 0.38rem 0.4rem;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .theme-switch button[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--bg);
+  }
   .top-actions {
     position: absolute;
     right: 0.5rem;
@@ -375,12 +437,56 @@
     padding: 1rem 0 1.75rem;
   }
   .empty.hidden { display: none; }
-  .empty h2 {
-    margin: 0 0 1.35rem;
-    font-size: clamp(1.7rem, 3vw, 2.05rem);
-    font-weight: 600;
-    letter-spacing: -0.04em;
+  .kicker {
+    margin: 0 0 0.55rem;
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
   }
+  .empty h2 {
+    margin: 0 0 0.45rem;
+    font-family: var(--display);
+    font-size: clamp(2.1rem, 4vw, 2.8rem);
+    font-weight: 520;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+  .empty .lede {
+    margin: 0 auto 1.4rem;
+    max-width: 34rem;
+    color: var(--muted);
+    font-size: 1.02rem;
+    line-height: 1.5;
+  }
+  .status-bar {
+    margin: 0 auto 0.65rem;
+    width: min(768px, calc(100% - 2.5rem));
+    border: 1px solid var(--line);
+    background: var(--chip);
+    color: var(--ink);
+    border-radius: 12px;
+    padding: 0.55rem 0.8rem;
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+  .status-bar.warn { border-color: #c98600; }
+  .status-bar.bad { color: var(--danger); background: var(--danger-bg); }
+  .msg-actions { margin-top: 0.7rem; }
+  .copy-btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+    font: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+  }
+  .copy-btn:hover { color: var(--ink); background: var(--bg-hover); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .chips {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -682,20 +788,26 @@
     </button>
     <div class="chat-list-label">Chats</div>
     <div class="chat-list" id="chat-list" aria-label="Your chats"></div>
+    <div class="source-block">
+      <button class="source-trigger" id="source-trigger" type="button" aria-expanded="false" aria-controls="filters">
+        <span id="source-label">Whole library</span>
+        <small>Sources</small>
+      </button>
+      <div class="source-panel" id="filters" role="group" aria-label="Sources included in answers">
+        <button type="button" data-source="markdown_docs" aria-pressed="true">Documents</button>
+        <button type="button" data-source="help_center" aria-pressed="true">Articles</button>
+        <button type="button" data-source="tickets" aria-pressed="true">Tickets</button>
+        <button type="button" data-source="changelog" aria-pressed="true">Changelog</button>
+        <button type="button" data-source="openapi" aria-pressed="true">API spec</button>
+      </div>
+    </div>
     <div class="chat-list-label">Your files</div>
     <div class="file-list" id="file-list" aria-label="Uploaded files"></div>
     <div class="sb-foot">
-      <span>Local session</span>
-      <button class="icon-btn" id="theme-btn" type="button" title="Toggle theme" aria-label="Toggle theme">
-        <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-        </svg>
-        <svg class="icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>
-        </svg>
-      </button>
+      <div class="theme-switch" id="theme-btn" role="group" aria-label="Appearance">
+        <button type="button" id="theme-light" data-theme="light" aria-pressed="true">Light</button>
+        <button type="button" id="theme-dark" data-theme="dark" aria-pressed="false">Dark</button>
+      </div>
     </div>
   </aside>
 
@@ -722,16 +834,19 @@
       </div>
     </div>
 
+    <div id="status-bar" class="status-bar" hidden></div>
     <div class="stage" id="stage">
       <div id="log">
         <div class="col">
           <div class="empty" id="empty">
+            <p class="kicker">Your library</p>
             <h2>What can I help with?</h2>
+            <p class="lede">Answers stay tied to the files in this session. Citations show the passage, and a new chat keeps the last one saved.</p>
             <div class="chips">
-              <button class="chip" type="button" data-q="How do I add my own files?">How do I add my own files?<span>Upload or drop docs, then ingest</span></button>
-              <button class="chip" type="button" data-q="Can I upload files from the chat page?">Can I upload files from the chat page?<span>Use + in the composer or drop them</span></button>
-              <button class="chip" type="button" data-q="How do citations work?">How do citations work?<span>Answers point at ingested passages</span></button>
-              <button class="chip" type="button" data-q="How do I run this locally?">How do I run this locally?<span>Keys, Qdrant, and ingest</span></button>
+              <button class="chip" type="button" data-q="Summarize the files I uploaded.">Summarize my files<span>A short brief of what is indexed</span></button>
+              <button class="chip" type="button" data-q="Which passage supports this answer?">Show the source<span>Citations point at the passage used</span></button>
+              <button class="chip" type="button" data-q="What is missing from my documents?">Find the gaps<span>Questions the files do not answer</span></button>
+              <button class="chip" type="button" data-q="How do I add my own files?">Add a document<span>.md, .txt, .html, .pdf, or .docx</span></button>
             </div>
           </div>
           <div id="msgs"></div>
@@ -739,13 +854,6 @@
       </div>
 
       <div class="composer-wrap">
-        <div class="filters col" id="filters" title="Limit retrieval to these source types">
-          <label><input type="checkbox" value="markdown_docs" checked> Docs</label>
-          <label><input type="checkbox" value="help_center" checked> HTML</label>
-          <label><input type="checkbox" value="tickets" checked> Tickets</label>
-          <label><input type="checkbox" value="changelog" checked> Changelog</label>
-          <label><input type="checkbox" value="openapi" checked> OpenAPI</label>
-        </div>
         <form id="f" class="col" autocomplete="off">
           <input id="file-in" type="file" multiple accept=".md,.txt,.html,.htm,.pdf,.docx,text/markdown,text/plain,text/html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
           <button class="attach" id="upload-btn" type="button" title="Upload documents" aria-label="Upload documents">
@@ -760,7 +868,7 @@
             </svg>
           </button>
         </form>
-        <p class="hint">Answers cite ingested files. Upload .md, .txt, .html, .pdf, or .docx. Files stay in this browser session.</p>
+        <p class="hint">Cited answers only. Drop .md, .txt, .html, .pdf, or .docx. This browser keeps its own files and chats.</p>
       </div>
     </div>
   </div>
@@ -796,11 +904,31 @@ function uid() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
+function sourceButtons() {
+  return [...document.querySelectorAll('#filters [data-source]')];
+}
+function syncSourceLabel() {
+  const buttons = sourceButtons();
+  const on = buttons.filter(b => b.getAttribute('aria-pressed') === 'true');
+  const label = document.getElementById('source-label');
+  if (!label) return;
+  if (!on.length || on.length === buttons.length) label.textContent = 'Whole library';
+  else label.textContent = on.map(b => b.textContent.trim()).join(', ');
+}
 function selectedSourceTypes() {
-  const boxes = [...document.querySelectorAll('#filters input[type=checkbox]')];
-  const on = boxes.filter(b => b.checked).map(b => b.value);
-  if (!on.length || on.length === boxes.length) return null;
+  const buttons = sourceButtons();
+  const on = buttons.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.dataset.source);
+  if (!on.length || on.length === buttons.length) return null;
   return on;
+}
+function applyTheme(mode) {
+  const dark = mode === 'dark';
+  document.documentElement.classList.toggle('dark', dark);
+  localStorage.setItem('ask-theme', dark ? 'dark' : 'light');
+  const lightBtn = document.getElementById('theme-light');
+  const darkBtn = document.getElementById('theme-dark');
+  if (lightBtn) lightBtn.setAttribute('aria-pressed', dark ? 'false' : 'true');
+  if (darkBtn) darkBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
 }
 function apiHistory(messages) {
   const pairs = [];
@@ -838,16 +966,41 @@ async function api(path, opts) {
   const resp = await fetch(path, { credentials: 'same-origin', ...opts });
   return resp;
 }
+function setStatus(text, kind, owner) {
+  const bar = document.getElementById('status-bar');
+  if (!bar) return;
+  if (!text) {
+    if (owner && bar.dataset.owner && bar.dataset.owner !== owner) return;
+    bar.hidden = true;
+    bar.textContent = '';
+    bar.className = 'status-bar';
+    bar.dataset.owner = '';
+    return;
+  }
+  bar.hidden = false;
+  bar.dataset.owner = owner || '';
+  bar.className = 'status-bar' + (kind ? ' ' + kind : '');
+  bar.textContent = text;
+}
 async function persistRemote() {
   const chat = activeChat();
-  if (!chat || !chat.id) return;
-  try {
-    await api('/chats/' + encodeURIComponent(chat.id), {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title: chat.title, messages: toApiMessages(chat.messages) }),
-    });
-  } catch (_) {}
+  if (!chat || !chat.id) return true;
+  const body = JSON.stringify({ title: chat.title, messages: toApiMessages(chat.messages) });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const resp = await api('/chats/' + encodeURIComponent(chat.id), {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body,
+      });
+      if (resp.ok) {
+        setStatus('', '', 'save');
+        return true;
+      }
+    } catch (_) {}
+  }
+  setStatus('This chat is still on screen, but it could not be saved. Stay on this thread and send again.', 'bad', 'save');
+  return false;
 }
 function persistMessage(msg) {
   const chat = activeChat();
@@ -1012,10 +1165,24 @@ document.getElementById('menu-btn').addEventListener('click', () => setNav(true)
 document.getElementById('sidebar-close').addEventListener('click', () => setNav(false));
 document.getElementById('scrim').addEventListener('click', () => setNav(false));
 
-document.getElementById('theme-btn').addEventListener('click', () => {
-  const isDark = document.documentElement.classList.toggle('dark');
-  localStorage.setItem('ask-theme', isDark ? 'dark' : 'light');
+document.getElementById('source-trigger').addEventListener('click', () => {
+  const panel = document.getElementById('filters');
+  const open = panel.classList.toggle('open');
+  document.getElementById('source-trigger').setAttribute('aria-expanded', open ? 'true' : 'false');
 });
+sourceButtons().forEach(btn => {
+  btn.addEventListener('click', () => {
+    const on = sourceButtons().filter(b => b.getAttribute('aria-pressed') === 'true');
+    const pressed = btn.getAttribute('aria-pressed') === 'true';
+    if (pressed && on.length === 1) return;
+    btn.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+    syncSourceLabel();
+  });
+});
+document.querySelectorAll('#theme-btn [data-theme]').forEach(btn => {
+  btn.addEventListener('click', () => applyTheme(btn.getAttribute('data-theme')));
+});
+applyTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
 
 function syncSend() {
   send.disabled = busy ? false : !qEl.value.trim();
@@ -1159,6 +1326,26 @@ function addBot() {
   return { prose, bubble };
 }
 
+function attachCopy(bubble, text) {
+  if (!bubble || bubble.querySelector('.copy-btn')) return;
+  const row = document.createElement('div');
+  row.className = 'msg-actions';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+    } catch (_) {
+      btn.textContent = 'Copy failed';
+    }
+  });
+  row.appendChild(btn);
+  bubble.appendChild(row);
+}
 function addBotMessage(text, citations, persist) {
   enterThread();
   const row = document.createElement('div');
@@ -1170,6 +1357,7 @@ function addBotMessage(text, citations, persist) {
   prose.innerHTML = renderMarkdown(text);
   bubble.appendChild(prose);
   addCitations(citations, bubble);
+  attachCopy(bubble, text);
   row.appendChild(avatar());
   row.appendChild(bubble);
   msgs.appendChild(row);
@@ -1233,6 +1421,14 @@ async function refreshFiles() {
 async function uploadFiles(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
+  const allowed = /\.(md|txt|html|htm|pdf|docx)$/i;
+  const tooBig = files.filter(f => f.size > 5 * 1024 * 1024);
+  const badType = files.filter(f => !allowed.test(f.name || ''));
+  if (tooBig.length || badType.length) {
+    if (badType.length) addSys('Use .md, .txt, .html, .pdf, or .docx.', true);
+    if (tooBig.length) addSys('Each file must be 5 MB or smaller.', true);
+    return;
+  }
   addSys('Indexing ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '…');
   const body = new FormData();
   files.forEach(f => body.append('files', f, f.name));
@@ -1349,14 +1545,21 @@ form.addEventListener('submit', async e => {
       history.push(['user', question]);
       history.push(['assistant', tokens.join('')]);
       if (history.length > 20) history = history.slice(-20);
+      attachCopy(bubble, tokens.join(''));
       persistMessage({ role: 'assistant', text: tokens.join(''), citations: lastCitations });
     }
   } catch (err) {
+    if (tokens.length && bubble) {
+      attachCopy(bubble, tokens.join(''));
+      persistMessage({ role: 'assistant', text: tokens.join(''), citations: lastCitations });
+    }
     if (err && err.name === 'AbortError') {
       removeTyping();
-      addSys('Stopped.');
+      addSys(tokens.length ? 'Stopped. The partial answer was kept.' : 'Stopped.');
     } else {
-      addError('Connection error — is the server running?');
+      addError(tokens.length
+        ? 'The connection dropped. The partial answer was kept — use Retry to ask again.'
+        : 'Connection error — is the server running?');
     }
   } finally {
     busy = false;
@@ -1370,12 +1573,17 @@ async function pollHealth() {
   try {
     const resp = await fetch('/health');
     const data = await resp.json();
-    healthDot.classList.toggle('bad', !data.providers || !data.providers.length);
-    healthDot.classList.toggle('warn', data.status === 'degraded' && data.providers && data.providers.length);
-    healthDot.title = 'Health: ' + data.status + (data.qdrant ? ' · Qdrant' : ' · BM25 only');
+    const noModels = !data.providers || !data.providers.length;
+    healthDot.classList.toggle('bad', noModels);
+    healthDot.classList.toggle('warn', data.status === 'degraded' && !noModels);
+    healthDot.title = 'Health: ' + data.status + (data.qdrant ? ' · Qdrant' : ' · keyword search');
+    if (noModels) setStatus('No answer model is configured. Answers cannot be generated until a provider key is set.', 'bad', 'health');
+    else if (!data.qdrant) setStatus('Vector search is offline. Answers still use keyword search over the files on this server.', 'warn', 'health');
+    else setStatus('', '', 'health');
   } catch (_) {
     healthDot.classList.add('bad');
     healthDot.title = 'Health: unreachable';
+    setStatus('The server did not answer a health check. You can retry in a moment.', 'bad', 'health');
   }
 }
 
@@ -1405,13 +1613,18 @@ async function migrateLocalChats() {
 
 async function boot() {
   await migrateLocalChats();
-  try {
-    const resp = await api('/chats/');
-    if (resp.ok) {
-      const data = await resp.json();
-      store.chats = (data.chats || []).map(c => ({ ...c, messages: c.messages || [] }));
-    }
-  } catch (_) {}
+  let loaded = false;
+  for (let attempt = 0; attempt < 2 && !loaded; attempt++) {
+    try {
+      const resp = await api('/chats/');
+      if (resp.ok) {
+        const data = await resp.json();
+        store.chats = (data.chats || []).map(c => ({ ...c, messages: c.messages || [] }));
+        loaded = true;
+      }
+    } catch (_) {}
+  }
+  if (!loaded) setStatus('Saved chats could not be loaded. New messages will try again.', 'warn', 'boot');
   renderChatList();
   refreshFiles();
   pollHealth();
